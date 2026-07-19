@@ -83,12 +83,12 @@ createApp({
         const systemRegexNames = ['Auto Replace {{user}}', 'NAI画图正则'];
         const systemWorldInfoNames = ['自动生图'];
 
-        const IMAGE_GEN_BASE_URL = 'https://nai.sta1n.cn';
+        const IMAGE_GEN_BASE_URL = 'https://apihub.agnes-ai.com';
 
         // --- Default API Configuration ---
-        const DEFAULT_API_PROVIDER_ID = 'sta1n';
+        const DEFAULT_API_PROVIDER_ID = 'agnes';
         const DEFAULT_API_CONFIG = {
-            apiUrl: 'https://cdn.sta1n.cn/v1',
+            apiUrl: 'https://apihub.agnes-ai.com/v1',
             apiKey: '',
             model: '', // Default selected
             qualityModel: '',
@@ -97,6 +97,12 @@ createApp({
         };
 
         const apiProviderOptions = [
+            {
+                id: 'agnes',
+                name: 'Agnes',
+                apiUrl: 'https://apihub.agnes-ai.com/v1',
+                icon: 'https://agnes-ai.com/images/logo-icon.png'
+            },
             {
                 id: 'sta1n',
                 name: 'STA1N API',
@@ -120,6 +126,12 @@ createApp({
                 name: 'SiliconFlow',
                 apiUrl: 'https://api.siliconflow.cn/v1',
                 icon: 'https://siliconflow.cn/favicon.ico'
+            },
+            {
+                id: 'opencode',
+                name: 'OpenCode',
+                apiUrl: 'https://rp-hub-proxy.694904679.workers.dev',
+                icon: 'https://ts1.tc.mm.bing.net/th/id/OIP-C.logAvxZd0BC…08&c=1&bgcl=207e0d&r=0&o=7&dpr=1.6&pid=ImgRC&rm=3',
             }
         ];
 
@@ -199,26 +211,25 @@ createApp({
                     quotaAvailable.value = false;
                     return;
                 }
-                const baseUrl = IMAGE_GEN_BASE_URL;
-                const response = await fetch(`${baseUrl}/api/api/getUser`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ toUserId: imageGenToken })
+                const response = await fetch(`${IMAGE_GEN_BASE_URL}/v1/images/generations`, {
+                    method: 'HEAD',
+                    headers: {
+                        'Authorization': `Bearer ${imageGenToken}`
+                    }
                 });
-                const data = await response.json();
-                if (data.status === 'ok' && data.type === 'sta1n') {
-                    const val = Number.parseInt(data.data?.value, 10);
-                    if (!Number.isFinite(val)) throw new Error('Invalid quota value');
-                    quotaValue.value = val;
-                    quotaAvailable.value = val > 0;
-                } else {
+                if (response.ok || response.status === 405) {
+                    quotaValue.value = 1;
+                    quotaAvailable.value = true;
+                } else if (response.status === 401 || response.status === 403) {
                     quotaError.value = true;
                     quotaAvailable.value = false;
+                } else {
+                    quotaValue.value = 1;
+                    quotaAvailable.value = true;
                 }
             } catch (e) {
                 console.error('Quota fetch error:', e);
-                quotaError.value = true;
-                quotaAvailable.value = false;
+                quotaAvailable.value = true;
             } finally {
                 quotaLoading.value = false;
             }
@@ -2406,76 +2417,12 @@ createApp({
         };
 
         const updateImageGenRegexState = ({ enableRegex = false } = {}) => {
+            enforceSpecialRules();
             const imageGenRegexName = 'NAI画图正则';
-            let regex = regexScripts.value.find(r => r.name === imageGenRegexName);
-            if (!regex) {
-                enforceSpecialRules();
-                regex = regexScripts.value.find(r => r.name === imageGenRegexName);
-                if (!regex) return [];
-            }
+            const regex = regexScripts.value.find(r => r.name === imageGenRegexName);
+            if (!regex) return [];
 
-            const defaultArtists = 'masterpiece, best quality,[[[artist:dishwasher1910]]], {{yd_(orange_maru)}}, [artist:ciloranko], [artist:sho_(sho_lwlw)], [ningen mame], soft lighting,year 2024';
-            const comicDoujinArtists = 'masterpiece, best quality, very aesthetic, modern Japanese anime, official anime art, anime key visual, anime screencap, soft cel shading, soft anime coloring, smooth color transitions, natural skin tones, restrained color palette, slightly desaturated, muted colors, soft ambient lighting, gentle contrast, subtle gradients, subtle bloom, detailed anime background';
-            const r18Artists = `0.9::misaka_12003-gou ::, dino_(dinoartforame), wanke, liduke, year 2025, realistic, 4k, -2::green ::, textless version, The image is highly intricate finished drawn. Only the character's face is in anime style, but their body is in realistic style. 1.35::A highly finished photo-style artwork that has lively color, graphic texture, realistic skin surface, and lifelike flesh with little obliques::. 1.63::photorealistic::, 1.63::photo(medium)::,
-20::best quality, absurdres, very aesthetic, detailed, masterpiece::,, very aesthetic, masterpiece, no text,`;
-            const lolita25dArtists = `20::best quality, absurdres, very aesthetic, detailed, masterpiece::, 20::highly finished::, 10::ultra detailed::, 5::masterpiece::, 5::best quality::,
-
-2.4::kidmo::, 1.2::omone hokoma agm::, 1.1::dino, wanke, liduke::, 0.8::rurudo, mignon, artist:pottsness, artist:toosaka asagi::, 0.7::misaka_12003-gou::, 0.6::artist:chocoan, artist:ciloranko, artist:rhasta, artist:sho_sho_lwlw::, dino_(dinoartforame), agoto, akakura, 0.9::rurudo(Only body shape), mignon(Only body shape) ::
-
-year 2025, textless version, {{petite,loli}}, Petite figure, no text, The image is highly intricate finished drawn. Only the character's face is in anime style, but their body is in realistic style. 1.35::A highly finished photo-style artwork that has graphic texture, realistic skin surface, and lifelike flesh with little obliques::, smooth line, glossy skin, realistic, 4k,
-
-1.63::photorealistic::, 1.63::photo(medium)::, 3::simple background::, 2::depth of field::,
-
-1.5::vivid color, lively color::, desaturated, muted tones, cinematic desaturation, pale aesthetic, silver-toned,
-
--2::green::, -1.5::vibrant, colorful, saturated::`;
-            const animeArtists = '1.4::asanagi::,{{{{{artist:asanagi}}}}},1.2::xiaoluo_xl::,1.3::Artist: misaka_12003-gou::,1.2::Artist:shexyo::,0.7::Artist:b.sa_(bbbs)::,1::Artist:qiandaiyiyu::,1.05::artist:natedecock::,1.05::artist:kunaboto::,0.75::artist:kandata_nijou::,1.05::artist:zer0.zer0 ::,1.05::artist:jasony::,0.75::misaka_12003-gou ::, dino_(dinoartforame), wanke, liduke, year 2025, realistic, 4k, -2::green ::, {textless version, The image is highly intricate finished drawn,write realistically,true to life}, 1.35::A highly finished photo-style artwork that has lively color, graphic texture, realistic skin surface, and lifelike flesh with little obliques::, 1.63::photorealistic::,3::age slider::,1.63::photo(medium)::, 2::best quality, absurdres, very aesthetic, detailed, masterpiece::,-4::Muscle definition, abs::';
-            const galgameArtists = 'artist:ningen_mame,, noyu_(noyu23386566),, toosaka asagi,, location,\\n20::best quality, absurdres, very aesthetic, detailed, masterpiece::,:,, very aesthetic, masterpiece, no text,';
-
-            let targetArtists = defaultArtists;
-            let styleName = '韩漫小清新风';
-            if (settings.imageStyle === 'comicDoujin') {
-                targetArtists = comicDoujinArtists;
-                styleName = '动漫同人风';
-            } else if (settings.imageStyle === 'r18') {
-                targetArtists = r18Artists;
-                styleName = '2.5D唯美风';
-            } else if (settings.imageStyle === 'lolita25d') {
-                targetArtists = lolita25dArtists;
-                styleName = '2.5D唯美风（萝）';
-            } else if (settings.imageStyle === 'anime') {
-                targetArtists = animeArtists;
-                styleName = '本子里番风';
-            } else if (settings.imageStyle === 'galgame') {
-                targetArtists = galgameArtists;
-                styleName = 'GalGame风';
-            } else if (settings.imageStyle === 'custom') {
-                targetArtists = settings.customImageArtists || '';
-                styleName = '自定义';
-            }
-
-            // 动态替换 URL 中的 artist 和 size 参数
-            const encodedTargetArtists = encodeURIComponent(targetArtists);
-            const oldReplacement = regex.replacement;
-            let newReplacement = oldReplacement.replace(/artist=[\s\S]*?(&size=)/, 'artist=' + encodedTargetArtists + '$1');
-            if (newReplacement === oldReplacement) {
-                newReplacement = oldReplacement.replace(/artist=[^&]+/, 'artist=' + encodedTargetArtists);
-            }
-            newReplacement = newReplacement.replace(/size=[^&]+/, 'size=' + settings.imageSize);
-            regex.replacement = newReplacement;
-
-            let messages = [];
-            // 检查 Artist 变化
-            const oldArtist = oldReplacement.match(/artist=([\s\S]*?)&size=/)?.[1] || oldReplacement.match(/artist=([^&]+)/)?.[1];
-            if (oldArtist !== encodedTargetArtists) {
-                messages.push(styleName);
-            }
-            // 检查 Size 变化
-            const oldSize = oldReplacement.match(/size=([^&]+)/)?.[1];
-            if (oldSize !== settings.imageSize) {
-                messages.push(`比例: ${settings.imageSize}`);
-            }
-
+            const messages = [];
             if (enableRegex && !regex.enabled) {
                 regex.enabled = true;
                 messages.push(`${imageGenRegexName} 已启用`);
@@ -4371,11 +4318,8 @@ ${content}
                 const id = setTimeout(() => controller.abort(), 10000);
                 const startTime = performance.now();
 
-                const baseUrl = IMAGE_GEN_BASE_URL;
-
-                await fetch(baseUrl, {
+                await fetch(`${IMAGE_GEN_BASE_URL}/v1/images/generations`, {
                     method: 'HEAD',
-                    mode: 'no-cors',
                     signal: controller.signal
                 });
                 clearTimeout(id);
@@ -6329,6 +6273,12 @@ ${content}
                             }
 
                             // -----------------------------
+
+                            if (assistantMessage.content) {
+                                scheduleImageGenerationFromMessage(assistantMessage.content).catch((e) => {
+                                    console.error('[ImageGen] Scheduler error:', e);
+                                });
+                            }
                         }
 
             } catch (error) {
@@ -9319,12 +9269,15 @@ ${content}
             });
         };
 
-        const enforceSpecialRules = () => {
-            const imageGenToken = settings.imageGenKey.trim();
-            const baseUrl = IMAGE_GEN_BASE_URL;
+        const IMAGE_GEN_NEGATIVE_TAGS = 'bad anatomy, bad feet, bad hands, bad proportions, blurry, cloned face, cropped, deformed, disfigured, error, extra arms, extra digit, extra legs, extra limbs, fewer digits, fused fingers, gross proportions, ink eyes, ink hair, jpeg artifacts, long neck, low quality, malformed limbs, missing arms, missing fingers, missing legs, more than 2 nipples, mutated hands, mutation, normal quality, owres, poorly drawn face, poorly drawn hands, reen eyes, signature, text, too many fingers, ugly, username, uta, watermark, worst quality, more than 2 legs, awkward hand sign, weird hand gesture, contorted hand, unnatural finger pose, deformed hand gesture, shaka, hang loose, rock on, shaka sign';
 
-            // 1. NAI画图正则 (统一版本)
-            const imageGenRegexName = 'NAI画图正则';
+        const getImageRatio = () => {
+            if (settings.imageSize === '竖图') return '9:16';
+            if (settings.imageSize === '横图') return '16:9';
+            return '9:16';
+        };
+
+        const getImageArtists = () => {
             const defaultArtists = 'masterpiece, best quality,[[[artist:dishwasher1910]]], {{yd_(orange_maru)}}, [artist:ciloranko], [artist:sho_(sho_lwlw)], [ningen mame], soft lighting,year 2024';
             const comicDoujinArtists = 'masterpiece, best quality, very aesthetic, modern Japanese anime, official anime art, anime key visual, anime screencap, soft cel shading, soft anime coloring, smooth color transitions, natural skin tones, restrained color palette, slightly desaturated, muted colors, soft ambient lighting, gentle contrast, subtle gradients, subtle bloom, detailed anime background';
             const r18Artists = `0.9::misaka_12003-gou ::, dino_(dinoartforame), wanke, liduke, year 2025, realistic, 4k, -2::green ::, textless version, The image is highly intricate finished drawn. Only the character's face is in anime style, but their body is in realistic style. 1.35::A highly finished photo-style artwork that has lively color, graphic texture, realistic skin surface, and lifelike flesh with little obliques::. 1.63::photorealistic::, 1.63::photo(medium)::,
@@ -9357,12 +9310,96 @@ year 2025, textless version, {{petite,loli}}, Petite figure, no text, The image 
             } else if (settings.imageStyle === 'custom') {
                 targetArtists = settings.customImageArtists || '';
             }
+            return targetArtists;
+        };
 
-            const encodedTargetArtists = encodeURIComponent(targetArtists);
+        const generateSingleImage = async (prompt) => {
+            const imageGenToken = settings.imageGenKey.trim();
+            if (!imageGenToken) return null;
+
+            const artists = getImageArtists();
+            const fullPrompt = artists ? `${prompt}, ${artists} --no ${IMAGE_GEN_NEGATIVE_TAGS}` : `${prompt} --no ${IMAGE_GEN_NEGATIVE_TAGS}`;
+
+            console.log('[ImageGen] Generating:', fullPrompt);
+            const response = await fetch(`${IMAGE_GEN_BASE_URL}/v1/images/generations`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${imageGenToken}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    model: 'agnes-image-2.1-flash',
+                    prompt: fullPrompt,
+                    size: '1K',
+                    ratio: getImageRatio(),
+                    extra_body: { response_format: 'url' }
+                })
+            });
+
+            console.log('[ImageGen] Response status:', response.status);
+            if (!response.ok) {
+                const errText = await response.text();
+                console.error('[ImageGen] Error body:', errText.substring(0, 500));
+                throw new Error(errText.substring(0, 200) || `HTTP ${response.status}`);
+            }
+
+            const data = await response.json();
+            console.log('[ImageGen] Response data:', JSON.stringify(data).substring(0, 300));
+            const imageUrl = data.data?.[0]?.url;
+            if (!imageUrl) {
+                console.error('[ImageGen] No data[x].url in response, full data:', JSON.stringify(data));
+                throw new Error('No image URL in response');
+            }
+            return imageUrl;
+        };
+
+        const scheduleImageGenerationFromMessage = async (content) => {
+            console.log('[ImageGen] finding image generation triggers in assistant message...');
+            if (!content || typeof content !== 'string') return;
+            const regex = /image###([\s\S]*?)###/g;
+            const prompts = [];
+            let match;
+            while ((match = regex.exec(content)) !== null) {
+                const prompt = match[1].trim();
+                if (prompt && !prompts.includes(prompt)) {
+                    prompts.push(prompt);
+                }
+            }
+            if (prompts.length === 0) return;
+
+            console.log('[ImageGen] Found', prompts.length, 'prompts in assistant message');
+
+            for (let i = 0; i < prompts.length; i++) {
+                try {
+                    const url = await generateSingleImage(prompts[i]);
+                    if (!url) continue;
+                    chatHistory.value.push({
+                        role: 'assistant',
+                        name: currentCharacter.value?.name || '',
+                        content: `<div class="img-gen-message" style="width: auto; height: auto; max-width: 100%; box-sizing: border-box; padding: 2px; border: 1px solid rgba(255,255,255,0.58); background: rgba(255,255,255,0.32); border-radius: 12px; overflow: hidden; display: inline-flex; justify-content: center; align-items: center; box-shadow: 0 4px 14px rgba(148,163,184,0.06);"><img src="${url}" alt="生成图片" style="max-width: 100%; height: auto; width: auto; display: block; object-fit: contain; border-radius: 9px; transition: transform 0.3s ease;"></div>`,
+                        isImageGen: true,
+                        skipReveal: true,
+                        shouldAnimate: true
+                    });
+                    scheduleChatHistorySave();
+                    await nextTick();
+                    await scrollChatToBottom();
+                } catch (e) {
+                    console.error('[ImageGen] Failed:', e.message || e);
+                    showToast(`[图片生成失败]: ${e.message || e}`, 'error', 4000);
+                }
+            }
+        };
+
+        const enforceSpecialRules = () => {
+
+            // 1. Agnes画图正则 (异步生图独立消息方案)
+            const imageGenRegexName = 'NAI画图正则';
+
             const imageGenRegexContent = {
                 name: imageGenRegexName,
                 regex: '/image###([\\s\\S]*?)###/g',
-                replacement: '<div style="width: auto; height: auto; max-width: 100%; box-sizing: border-box; padding: 2px; border: 1px solid rgba(255,255,255,0.58); background: rgba(255,255,255,0.32); position: relative; border-radius: 12px; overflow: hidden; display: inline-flex; justify-content: center; align-items: center; box-shadow: 0 4px 14px rgba(148,163,184,0.06);"><img src="' + baseUrl + '/generate?tag=$1&token=' + imageGenToken + '&model=nai-diffusion-4-5-full&artist=' + encodedTargetArtists + '&size=' + settings.imageSize + '&steps=40&scale=6&cfg=0&sampler=k_dpmpp_2m_sde&negative={{{{bad anatomy}}}},{bad feet},bad hands,{{{bad proportions}}},{blurry},cloned face,cropped,{{{deformed}}},{{{disfigured}}},error,{{{extra arms}}},{extra digit},{{{extra legs}}},extra limbs,{{extra limbs}},{fewer digits},{{{fused fingers}}},gross proportions,ink eyes,ink hair,jpeg artifacts,{{{{long neck}}}},low quality,{malformed limbs},{{missing arms}},{missing fingers},{{missing legs}},{{{more than 2 nipples}}},mutated hands,{{{mutation}}},normal quality,owres,{{poorly drawn face}},{{poorly drawn hands}},reen eyes,signature,text,{{too many fingers}},{{{ugly}}},username,uta,watermark,worst quality,{{{more than 2 legs}}},awkward hand sign,weird hand gesture,contorted hand,unnatural finger pose,deformed hand gesture,{shaka},{hang loose},{{rock on}},{shaka sign}&nocache=0&noise_schedule=karras"  alt="生成图片" style="max-width: 100%; height: auto; width: auto; display: block; object-fit: contain; border-radius: 9px; transition: transform 0.3s ease;"></div>',
+                replacement: '',
                 placement: [2],
                 markdownOnly: true,
                 promptOnly: false,
@@ -9481,6 +9518,8 @@ image###生成的提示词###
             worldInfo.value.unshift(autoImageGenWIContent);
 
         };
+
+        // 旧的 DOM 占位符生图方案已移除，现为异步生成后追加独立消息方案
 
         watch(() => settings.imageGenKey, () => {
             enforceSpecialRules();
@@ -10322,8 +10361,6 @@ image###生成的提示词###
 
             await loadData();
             fetchQuota(); // Fetch quota after saved settings are loaded
-
-            checkUpdate(); // Check for updates — 必须在 loadData 之后，否则 localStorage 代理中的 update_id 还未从服务端加载
 
             // --- 全局清理废弃正则 (思维隐藏及旧版画图迁移项已清理完毕，保留基础结构) ---
             const obsoleteRegexNames = ['隐藏正文的thinking', 'Nai画图正则-本子风', 'Nai画图正则-竖图'];

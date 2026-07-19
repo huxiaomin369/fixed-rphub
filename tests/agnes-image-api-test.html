@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Agnes Image Generation API Test</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms"></script>
+<style>
+  .spinner { border: 3px solid #e5e7eb; border-top: 3px solid #6366f1; border-radius: 50%; width: 24px; height: 24px; animation: spin 0.8s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  textarea { field-sizing: content; min-height: 60px; max-height: 200px; }
+</style>
+</head>
+<body class="bg-gray-50 min-h-screen p-4 md:p-8">
+
+<div class="max-w-2xl mx-auto">
+  <h1 class="text-2xl font-bold text-gray-800 mb-6">Agnes 文生图 API 测试</h1>
+
+  <!-- Config Section -->
+  <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5 mb-4 space-y-4">
+    <h2 class="text-sm font-semibold text-gray-500 uppercase tracking-wide">API 配置</h2>
+
+    <div>
+      <label class="block text-sm font-medium text-gray-700 mb-1">API Key</label>
+      <input id="apiKey" type="password" class="w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm" placeholder="sk-...">
+      <p class="text-xs text-gray-400 mt-1">输入你的 Agnes API Key（存储在本地，不会上传）</p>
+    </div>
+
+    <div class="grid grid-cols-2 gap-4">
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">模型</label>
+        <select id="model" class="w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm">
+          <option value="agnes-image-2.1-flash">agnes-image-2.1-flash</option>
+          <option value="agnes-image-2.1">agnes-image-2.1</option>
+          <option value="agnes-image-2.0">agnes-image-2.0</option>
+          <option value="agnes-image-1.0">agnes-image-1.0</option>
+        </select>
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">尺寸 / 比例</label>
+        <select id="size" class="w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm">
+          <option value="1K">1K</option>
+          <option value="2K">2K</option>
+          <option value="4K">4K</option>
+          <option value="1024x768">1024x768</option>
+          <option value="1024x1024">1024x1024</option>
+          <option value="768x1024">768x1024</option>
+        </select>
+      </div>
+    </div>
+
+    <div>
+      <label class="block text-sm font-medium text-gray-700 mb-1">画面比例（ratio，可选）</label>
+      <select id="ratio" class="w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm">
+        <option value="">默认（不传）</option>
+        <option value="1:1">1:1</option>
+        <option value="9:16">9:16</option>
+        <option value="16:9">16:9</option>
+        <option value="3:4">3:4</option>
+        <option value="4:3">4:3</option>
+        <option value="2:3">2:3</option>
+        <option value="3:2">3:2</option>
+      </select>
+    </div>
+
+    <div class="flex gap-3">
+      <div class="flex items-center gap-2">
+        <input id="responseFormat" type="radio" name="format" value="url" checked class="border-gray-300 text-indigo-600 focus:ring-indigo-500">
+        <label for="responseFormat" class="text-sm text-gray-700">返回 URL</label>
+      </div>
+      <div class="flex items-center gap-2">
+        <input id="responseFormatB64" type="radio" name="format" value="b64_json" class="border-gray-300 text-indigo-600 focus:ring-indigo-500">
+        <label for="responseFormatB64" class="text-sm text-gray-700">返回 Base64</label>
+      </div>
+    </div>
+  </div>
+
+  <!-- Prompt Section -->
+  <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5 mb-4">
+    <div class="flex items-center justify-between mb-3">
+      <h2 class="text-sm font-semibold text-gray-500 uppercase tracking-wide">Prompt</h2>
+      <div id="authStatus" class="text-xs text-gray-400">未验证</div>
+    </div>
+
+    <div class="space-y-3">
+      <div>
+        <label class="block text-xs font-medium text-gray-600 mb-1">正向 Prompt</label>
+        <textarea id="prompt" class="w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm" rows="3" placeholder="描述你想生成的图像...">A luminous floating city above a misty canyon at sunrise, cinematic realism</textarea>
+      </div>
+
+      <div>
+        <label class="block text-xs font-medium text-gray-600 mb-1">负面 Prompt（--no）</label>
+        <textarea id="negativePrompt" class="w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm" rows="2" placeholder="不想要的元素，逗号分隔...">bad anatomy, blurry, low quality, watermark, text</textarea>
+      </div>
+
+      <div class="flex gap-3">
+        <button id="checkBtn" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200 transition-colors">
+          验证 API Key
+        </button>
+        <button id="testBtn" class="flex-1 px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2">
+          <span class="spinner hidden" id="btnSpinner"></span>
+          <span id="btnText">生成图片</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Quota Info -->
+  <div id="quotaInfo" class="hidden bg-white rounded-xl shadow-sm border border-gray-200 p-4 mb-4 text-sm text-gray-600"></div>
+
+  <!-- Result Section -->
+  <div id="resultSection" class="hidden bg-white rounded-xl shadow-sm border border-gray-200 p-5 mb-4">
+    <h2 class="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">生成结果</h2>
+
+    <div id="resultStatus" class="mb-3"></div>
+
+    <!-- Image Preview -->
+    <div id="imagePreview" class="hidden mb-3">
+      <p class="text-xs font-medium text-gray-600 mb-2">图片预览</p>
+      <img id="resultImage" class="w-full rounded-lg border border-gray-200" alt="Generated image">
+    </div>
+
+    <!-- URL Copy -->
+    <div id="urlInfo" class="hidden mb-3">
+      <div class="flex items-center gap-2">
+        <input id="resultUrl" type="text" readonly class="flex-1 rounded-lg border-gray-200 bg-gray-50 text-sm text-gray-600">
+        <button id="copyUrlBtn" class="px-3 py-2 bg-gray-100 text-gray-600 rounded-lg text-sm hover:bg-gray-200 transition-colors whitespace-nowrap">复制</button>
+      </div>
+    </div>
+
+    <!-- Timing -->
+    <div id="timingInfo" class="hidden mb-3 text-xs text-gray-400"></div>
+
+    <!-- Raw Response -->
+    <details class="mt-3">
+      <summary class="text-xs font-medium text-gray-500 cursor-pointer hover:text-gray-700">查看原始响应</summary>
+      <pre id="rawResponse" class="mt-2 p-3 bg-gray-50 rounded-lg text-xs text-gray-600 overflow-auto max-h-64 whitespace-pre-wrap"></pre>
+    </details>
+  </div>
+
+  <!-- History -->
+  <div id="historySection" class="hidden bg-white rounded-xl shadow-sm border border-gray-200 p-5">
+    <h2 class="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">历史记录</h2>
+    <div id="historyList" class="space-y-2 max-h-96 overflow-auto"></div>
+  </div>
+</div>
+
+<script>
+(function() {
+  const $ = (id) => document.getElementById(id);
+
+  let history = [];
+  let apiStatusChecked = false;
+
+  // Build request body
+  function buildBody() {
+    const model = $('model').value;
+    const prompt = $('prompt').value.trim();
+    const negativePrompt = $('negativePrompt').value.trim();
+    const size = $('size').value;
+    const ratio = $('ratio').value;
+    const format = document.querySelector('input[name="format"]:checked').value;
+
+    if (!prompt) throw new Error('Prompt 不能为空');
+
+    let fullPrompt = prompt;
+    if (negativePrompt) {
+      fullPrompt = `${prompt} --no ${negativePrompt}`;
+    }
+
+    const body = {
+      model,
+      prompt: fullPrompt,
+      size,
+      extra_body: { response_format: format }
+    };
+
+    if (ratio) {
+      body.ratio = ratio;
+    }
+
+    return body;
+  }
+
+  // Get API Key
+  function getApiKey() {
+    const key = $('apiKey').value.trim();
+    if (!key) throw new Error('请先输入 API Key');
+    if (!key.startsWith('sk-')) console.warn('API Key 似乎不是以 sk- 开头，请确认是否正确');
+    return key;
+  }
+
+  // Check API Key validity via HEAD request
+  async function checkApiKey() {
+    const apiKey = getApiKey();
+    $('authStatus').textContent = '验证中...';
+    $('authStatus').className = 'text-xs text-gray-400';
+    $('checkBtn').disabled = true;
+
+    const start = performance.now();
+    try {
+      const res = await fetch('https://apihub.agnes-ai.com/v1/images/generations', {
+        method: 'HEAD',
+        headers: { 'Authorization': `Bearer ${apiKey}` }
+      });
+      const latency = Math.round(performance.now() - start);
+
+      if (res.ok || res.status === 405) {
+        $('authStatus').textContent = `连接成功 (${latency}ms)`;
+        $('authStatus').className = 'text-xs text-green-600';
+        apiStatusChecked = true;
+        showQuotaInfo({ valid: true, latency });
+      } else if (res.status === 401 || res.status === 403) {
+        $('authStatus').textContent = `认证失败 (HTTP ${res.status})`;
+        $('authStatus').className = 'text-xs text-red-500';
+        apiStatusChecked = false;
+        $('quotaInfo').classList.add('hidden');
+      } else {
+        $('authStatus').textContent = `状态: HTTP ${res.status} (${latency}ms)`;
+        $('authStatus').className = 'text-xs text-yellow-600';
+        apiStatusChecked = true;
+        showQuotaInfo({ valid: true, latency, status: res.status });
+      }
+    } catch (e) {
+      $('authStatus').textContent = `连接失败: ${e.message}`;
+      $('authStatus').className = 'text-xs text-red-500';
+      apiStatusChecked = false;
+      $('quotaInfo').classList.add('hidden');
+    } finally {
+      $('checkBtn').disabled = false;
+    }
+  }
+
+  function showQuotaInfo(info) {
+    $('quotaInfo').classList.remove('hidden');
+    $('quotaInfo').innerHTML = `
+      <div class="flex items-center gap-2">
+        <span class="w-2 h-2 rounded-full ${info.valid ? 'bg-green-400' : 'bg-red-400'}"></span>
+        <span class="font-medium">${info.valid ? 'API 端点可达' : 'API 端点异常'}</span>
+        <span class="text-gray-400">| 延迟: ${info.latency}ms</span>
+        ${info.status ? `<span class="text-gray-400">| 状态码: ${info.status}</span>` : ''}
+      </div>
+    `;
+  }
+
+  // Generate image
+  async function generateImage() {
+    const apiKey = getApiKey();
+    const body = buildBody();
+
+    // UI preparation
+    $('testBtn').disabled = true;
+    $('btnSpinner').classList.remove('hidden');
+    $('btnText').textContent = '生成中...';
+    $('resultSection').classList.remove('hidden');
+    $('imagePreview').classList.add('hidden');
+    $('urlInfo').classList.add('hidden');
+    $('timingInfo').classList.add('hidden');
+    $('resultStatus').innerHTML = '<p class="text-sm text-gray-400">正在请求...</p>';
+    $('rawResponse').textContent = '';
+
+    const startTime = performance.now();
+    try {
+      console.log('[Test] Request body:', JSON.stringify(body, null, 2));
+
+      const res = await fetch('https://apihub.agnes-ai.com/v1/images/generations', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(body)
+      });
+
+      const elapsed = ((performance.now() - startTime) / 1000).toFixed(1);
+
+      if (!res.ok) {
+        const errText = await res.text();
+        $('resultStatus').innerHTML = `
+          <div class="p-3 bg-red-50 border border-red-200 rounded-lg">
+            <p class="text-sm font-medium text-red-700">请求失败 (HTTP ${res.status})</p>
+            <pre class="mt-1 text-xs text-red-600 whitespace-pre-wrap">${errText.substring(0, 500)}</pre>
+          </div>
+        `;
+        $('rawResponse').textContent = `HTTP ${res.status}\n${errText}`;
+        addHistory({ success: false, status: res.status, error: errText.substring(0, 200), elapsed, model: body.model, prompt: body.prompt });
+        return;
+      }
+
+      const data = await res.json();
+      console.log('[Test] Response:', data);
+
+      $('rawResponse').textContent = JSON.stringify(data, null, 2);
+      $('timingInfo').classList.remove('hidden');
+      $('timingInfo').textContent = `耗时: ${elapsed}s`;
+
+      const format = document.querySelector('input[name="format"]:checked').value;
+
+      if (data.data && data.data.length > 0) {
+        const item = data.data[0];
+        if (format === 'url' && item.url) {
+          $('resultStatus').innerHTML = '<p class="text-sm text-green-600 font-medium">生成成功！</p>';
+          $('urlInfo').classList.remove('hidden');
+          $('resultUrl').value = item.url;
+          $('imagePreview').classList.remove('hidden');
+          $('resultImage').src = item.url;
+          $('resultImage').onerror = () => {
+            $('imagePreview').querySelector('p').textContent = '图片预览（加载失败，可能是链接已过期）';
+          };
+          addHistory({ success: true, url: item.url, elapsed, model: body.model, prompt: body.prompt });
+        } else if (format === 'b64_json' && item.b64_json) {
+          $('resultStatus').innerHTML = '<p class="text-sm text-green-600 font-medium">生成成功（Base64）！</p>';
+          $('imagePreview').classList.remove('hidden');
+          $('resultImage').src = `data:image/png;base64,${item.b64_json}`;
+          addHistory({ success: true, b64: true, elapsed, model: body.model, prompt: body.prompt });
+        } else {
+          $('resultStatus').innerHTML = `
+            <div class="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+              <p class="text-sm text-yellow-700">响应格式异常，找不到图片数据</p>
+              <p class="text-xs text-yellow-600 mt-1">data.data[0] 不包含 url 或 b64_json 字段</p>
+            </div>
+          `;
+          addHistory({ success: false, error: 'No image data in response', elapsed, model: body.model, prompt: body.prompt });
+        }
+      } else {
+        $('resultStatus').innerHTML = `
+          <div class="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+            <p class="text-sm text-yellow-700">响应中没有 data 数组</p>
+          </div>
+        `;
+        addHistory({ success: false, error: 'Empty data array', elapsed, model: body.model, prompt: body.prompt });
+      }
+    } catch (e) {
+      const elapsed = ((performance.now() - startTime) / 1000).toFixed(1);
+      $('resultStatus').innerHTML = `
+        <div class="p-3 bg-red-50 border border-red-200 rounded-lg">
+          <p class="text-sm font-medium text-red-700">请求异常</p>
+          <p class="text-xs text-red-600 mt-1">${e.message}</p>
+        </div>
+      `;
+      addHistory({ success: false, error: e.message, elapsed, model: body.model, prompt: body.prompt });
+    } finally {
+      $('testBtn').disabled = false;
+      $('btnSpinner').classList.add('hidden');
+      $('btnText').textContent = '生成图片';
+    }
+  }
+
+  function addHistory(item) {
+    history.unshift(item);
+    if (history.length > 20) history.length = 20;
+    renderHistory();
+  }
+
+  function renderHistory() {
+    const list = $('historyList');
+    if (history.length === 0) {
+      $('historySection').classList.add('hidden');
+      return;
+    }
+    $('historySection').classList.remove('hidden');
+    list.innerHTML = history.map((h, i) => `
+      <div class="flex items-center gap-2 py-2 border-b border-gray-100 last:border-0">
+        <span class="w-1.5 h-1.5 rounded-full flex-shrink-0 ${h.success ? 'bg-green-400' : 'bg-red-400'}"></span>
+        <div class="flex-1 min-w-0">
+          <p class="text-xs text-gray-700 truncate" title="${escapeHtml(h.prompt)}">${escapeHtml(h.prompt.substring(0, 50))}</p>
+          <p class="text-xs text-gray-400">${h.model} · ${h.elapsed}s ${h.error ? '· ' + h.error : ''}</p>
+        </div>
+        ${h.url ? `<button onclick="copyUrl('${escapeHtml(h.url)}', this)" class="text-xs text-indigo-500 hover:text-indigo-700 flex-shrink-0">复制URL</button>` : ''}
+      </div>
+    `).join('');
+  }
+
+  function escapeHtml(str) {
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+  }
+
+  window.copyUrl = function(url, btn) {
+    navigator.clipboard.writeText(url).then(() => {
+      const orig = btn.textContent;
+      btn.textContent = '已复制';
+      setTimeout(() => { btn.textContent = orig; }, 1500);
+    });
+  };
+
+  // Event bindings
+  $('checkBtn').addEventListener('click', checkApiKey);
+  $('testBtn').addEventListener('click', generateImage);
+  $('copyUrlBtn').addEventListener('click', () => {
+    const url = $('resultUrl').value;
+    navigator.clipboard.writeText(url).then(() => {
+      const btn = $('copyUrlBtn');
+      const orig = btn.textContent;
+      btn.textContent = '已复制';
+      setTimeout(() => { btn.textContent = orig; }, 1500);
+    });
+  });
+
+  // Load saved API key from localStorage
+  const savedKey = localStorage.getItem('agnes_test_api_key');
+  if (savedKey) {
+    $('apiKey').value = savedKey;
+  }
+  $('apiKey').addEventListener('change', () => {
+    localStorage.setItem('agnes_test_api_key', $('apiKey').value);
+    apiStatusChecked = false;
+    $('authStatus').textContent = '未验证';
+    $('authStatus').className = 'text-xs text-gray-400';
+    $('quotaInfo').classList.add('hidden');
+  });
+
+  // Submit on Ctrl+Enter
+  $('prompt').addEventListener('keydown', (e) => {
+    if (e.ctrlKey && e.key === 'Enter') generateImage();
+  });
+})();
+</script>
+</body>
+</html>
