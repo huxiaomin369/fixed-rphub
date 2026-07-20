@@ -89,10 +89,6 @@ createApp({
                     '4K竖图': '2048x3648', '4K横图': '3648x2048', '4K方图': '3456x2592'
                 };
 
-        const getImageSize = () => {
-            return IMAGE_GEN_SIZE_MAP[settings.imageSize] || '736x1312';
-        };
-
         // --- Default API Configuration ---
         const DEFAULT_API_PROVIDER_ID = 'agnes';
         const DEFAULT_API_CONFIG = {
@@ -168,7 +164,8 @@ createApp({
                 name: 'SenseNova',
                 apiUrl: 'https://rphub.aieasy.cc.cd/sensenova/v1',
                 icon: 'https://largemodel.sensetime.com/skin/images/bannericon.svg',
-                defaultModel: 'SenseNova U1 Fast'
+                defaultModel: 'sensenova-u1-fast',
+                fixedSize: '1760x2368'
             }
         ];
 
@@ -9475,6 +9472,12 @@ year 2025, textless version, {{petite,loli}}, Petite figure, no text, The image 
                 targetArtists = settings.customImageArtists || '';
             }
             return targetArtists;
+        };
+
+        const getImageSize = () => {
+            const provider = selectedImageGenProvider.value;
+            if (provider && provider.fixedSize) return provider.fixedSize;
+            return IMAGE_GEN_SIZE_MAP[settings.imageSize] || '736x1312';
         };
 
         const generateSingleImage = async (prompt) => {

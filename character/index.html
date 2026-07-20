@@ -1698,11 +1698,16 @@
 
                 const imageGenProviderOptions = [
                     { id: 'agnes', name: 'Agnes', apiUrl: 'https://apihub.agnes-ai.com/v1', defaultModel: 'agnes-image-2.1-flash' },
-                    { id: 'sensenova', name: 'SenseNova', apiUrl: 'https://token.sensenova.cn/v1', defaultModel: '' }
+                    { id: 'sensenova', name: 'SenseNova', apiUrl: 'https://rphub.aieasy.cc.cd/sensenova/v1', defaultModel: 'sensenova-u1-fast', fixedSize: '1760x2368' }
                 ];
                 const getImageGenProviderUrl = (providerId) => {
                     const provider = imageGenProviderOptions.find(p => p.id === providerId);
                     return provider?.apiUrl || 'https://apihub.agnes-ai.com/v1';
+                };
+                const getImageGenSize = (providerId) => {
+                    const provider = imageGenProviderOptions.find(p => p.id === providerId);
+                    if (provider && provider.fixedSize) return provider.fixedSize;
+                    return IMAGE_GEN_SIZE_MAP['竖图'];
                 };
                 const IMAGE_GEN_SIZE_MAP = {
                     '竖图': '736x1312', '横图': '1312x736', '方图': '1152x864',
@@ -3653,7 +3658,7 @@
                             body: JSON.stringify({
                                 model: model,
                                 prompt: `${tag} --no ${NEGATIVE_TAGS}`,
-                                size: IMAGE_GEN_SIZE_MAP['竖图'],
+                                size: getImageGenSize(providerId),
                                 extra_body: { response_format: 'url' }
                             })
                         });
