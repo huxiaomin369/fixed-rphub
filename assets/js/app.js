@@ -138,9 +138,21 @@ createApp({
             {
                 id: 'opencode',
                 name: 'OpenCode',
-                apiUrl: 'https://opencode.ai/zen/v1',
+                apiUrl: 'https://rphub.aieasy.cc.cd/opencode/zen/v1',
                 icon: 'https://opencode.ai/favicon-v3.ico'
-            }
+            },
+            {
+                id: 'sensenova',
+                name: 'SenseNova',
+                apiUrl: 'https://rphub.aieasy.cc.cd/sensenova/v1',
+                icon: 'https://largemodel.sensetime.com/skin/images/bannericon.svg',
+            },
+            {
+                id: 'mimo',
+                name: 'mimo',
+                apiUrl: 'https://rphub.aieasy.cc.cd/mimo/v1',
+                icon: '',
+            },
         ];
 
         const imageGenProviderOptions = [
@@ -154,9 +166,9 @@ createApp({
             {
                 id: 'sensenova',
                 name: 'SenseNova',
-                apiUrl: 'https://token.sensenova.cn/v1',
+                apiUrl: 'https://rphub.aieasy.cc.cd/sensenova/v1',
                 icon: 'https://largemodel.sensetime.com/skin/images/bannericon.svg',
-                defaultModel: ''
+                defaultModel: 'SenseNova U1 Fast'
             }
         ];
 
