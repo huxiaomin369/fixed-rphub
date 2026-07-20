@@ -1695,12 +1695,25 @@
                     document.documentElement.dataset.appFont = normalizeFontFamily(value);
                 };
                 applyFontFamily('modern');
-                const IMAGE_GEN_BASE_URL = 'https://apihub.agnes-ai.com';
+
+                const imageGenProviderOptions = [
+                    { id: 'agnes', name: 'Agnes', apiUrl: 'https://apihub.agnes-ai.com/v1', defaultModel: 'agnes-image-2.1-flash' },
+                    { id: 'sensenova', name: 'SenseNova', apiUrl: 'https://token.sensenova.cn/v1', defaultModel: '' }
+                ];
+                const getImageGenProviderUrl = (providerId) => {
+                    const provider = imageGenProviderOptions.find(p => p.id === providerId);
+                    return provider?.apiUrl || 'https://apihub.agnes-ai.com/v1';
+                };
+                const IMAGE_GEN_SIZE_MAP = {
+                    '竖图': '736x1312', '横图': '1312x736', '方图': '1152x864',
+                    '2K竖图': '1472x2624', '2K横图': '2624x1472', '2K方图': '2304x1728',
+                    '4K竖图': '2048x3648', '4K横图': '3648x2048', '4K方图': '3456x2592'
+                };
 
                 // Main Settings Sync Listener
                 const setupSyncListener = () => {
                     window.addEventListener('message', (event) => {
-                        const { type, settings: mainSettings } = event.data;
+                        const { type, settings: mainSettings, imageGenBaseUrl: syncedImageGenBaseUrl, imageGenModel: syncedImageGenModel } = event.data;
                         if (type === 'SYNC_SETTINGS' && mainSettings) {
                             console.log('%c[Settings Sync Received]', 'color: #10b981; font-weight: bold;');
 
@@ -1711,7 +1724,15 @@
                             if (mainSettings.apiKey) api.key = mainSettings.apiKey;
 
                             // Sync Image Gen
-                            // Always sync key even if empty to ensure reset
+                            if (mainSettings.imageGenProviderId) options.imageGenProviderId = mainSettings.imageGenProviderId;
+                            if (mainSettings.imageGenProviderKeys) {
+                                Object.assign(options.imageGenProviderKeys, mainSettings.imageGenProviderKeys);
+                            }
+                            if (mainSettings.imageGenProviderModels) {
+                                Object.assign(options.imageGenProviderModels, mainSettings.imageGenProviderModels);
+                            }
+                            if (syncedImageGenBaseUrl) options.imageGenBaseUrl = syncedImageGenBaseUrl;
+                            if (syncedImageGenModel) options.imageGenModel = syncedImageGenModel;
                             options.imageGenKey = mainSettings.imageGenKey;
 
                             // Map imageStyle to avatarStyle (vertical -> default, r18 -> hentai)
@@ -1750,6 +1771,11 @@
                     generateExtra: true, // Default to true as requested
                     avatarStyle: 'default',
                     imageGenKey: '',
+                    imageGenProviderId: 'agnes',
+                    imageGenProviderKeys: {},
+                    imageGenProviderModels: {},
+                    imageGenBaseUrl: 'https://apihub.agnes-ai.com/v1',
+                    imageGenModel: 'agnes-image-2.1-flash',
                     customModels: {
                         quality: 'gemini-3.1-pro-preview-high',
                         balanced: 'gemini-3-flash-preview-high',
@@ -3609,22 +3635,25 @@
                 // Avatar Helpers
                 const generateAvatarUrl = async (tag) => {
                     console.log('%c[Workshop Image Request]', 'color: #ec4899; font-weight: bold;', { tag: tag });
-                    const token = options.imageGenKey.trim();
+                    const providerId = options.imageGenProviderId || 'agnes';
+                    const token = (options.imageGenProviderKeys[providerId] || '').trim() || (options.imageGenKey || '').trim();
                     if (!token) return '';
+
+                    const baseUrl = options.imageGenBaseUrl || getImageGenProviderUrl(providerId);
+                    const model = options.imageGenModel || options.imageGenProviderModels[providerId] || 'agnes-image-2.1-flash';
 
                     try {
                         const NEGATIVE_TAGS = 'bad anatomy, bad feet, bad hands, bad proportions, blurry, cloned face, cropped, deformed, disfigured, error, extra arms, extra digit, extra legs, extra limbs, fewer digits, fused fingers, gross proportions, ink eyes, ink hair, jpeg artifacts, long neck, low quality, malformed limbs, missing arms, missing fingers, missing legs, more than 2 nipples, mutated hands, mutation, normal quality, owres, poorly drawn face, poorly drawn hands, reen eyes, signature, text, too many fingers, ugly, username, uta, watermark, worst quality, more than 2 legs, awkward hand sign, weird hand gesture, contorted hand, unnatural finger pose, deformed hand gesture, shaka, hang loose, rock on, shaka sign';
-                        const response = await fetch(`${IMAGE_GEN_BASE_URL}/v1/images/generations`, {
+                        const response = await fetch(`${baseUrl}/images/generations`, {
                             method: 'POST',
                             headers: {
                                 'Authorization': `Bearer ${token}`,
                                 'Content-Type': 'application/json'
                             },
                             body: JSON.stringify({
-                                model: 'agnes-image-2.1-flash',
+                                model: model,
                                 prompt: `${tag} --no ${NEGATIVE_TAGS}`,
-                                size: '1K',
-                                ratio: '2:3',
+                                size: IMAGE_GEN_SIZE_MAP['竖图'],
                                 extra_body: { response_format: 'url' }
                             })
                         });
@@ -3946,7 +3975,8 @@ JSON 字段（世界书/正则脚本）必须输出为合法的 JSON 数组，**
                             }
 
                             // 提示密钥未配置
-                            if (!options.imageGenKey && currentCharacter.value.avatar_prompt) {
+                            const genKey = (options.imageGenProviderKeys[options.imageGenProviderId || 'agnes'] || '').trim() || options.imageGenKey;
+                            if (!genKey && currentCharacter.value.avatar_prompt) {
                                 showToast('生图密钥未配置，已跳过图片生成', 'info');
                             }
 
@@ -4191,7 +4221,7 @@ JSON 字段（世界书/正则脚本）必须输出为合法的 JSON 数组，**
                                     if (currentCharacter.value.avatar_prompt !== tag) {
                                         currentCharacter.value.avatar_prompt = tag;
                                         // 仅在配置了密钥时才生成图片 URL 并赋值，否则保持为空或旧数据，直到最后提示用户
-                                        if (options.imageGenKey) {
+                                        if ((options.imageGenProviderKeys[options.imageGenProviderId || 'agnes'] || '').trim() || options.imageGenKey) {
                                             generateAvatarUrl(tag).then(url => {
                                                 currentCharacter.value.avatar = url;
                                             });

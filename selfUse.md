@@ -30,5 +30,16 @@ pinme login
 # 部署上线
 pinme upload .
 ```
+## 桌面端打包
 
+```sh
+pnpm install -g pake-cli
+
+nativefier 'web.whatsapp.com'
+
+
+pake https://github.com --name GitHub
+pake https://weekly.tw93.fun --name Weekly --icon https://cdn.tw93.fun/pake/weekly.icns --width 1200 --height 800 --hide-title-bar
+
+```
 

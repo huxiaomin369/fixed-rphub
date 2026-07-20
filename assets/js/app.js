@@ -83,7 +83,15 @@ createApp({
         const systemRegexNames = ['Auto Replace {{user}}', 'NAI画图正则'];
         const systemWorldInfoNames = ['自动生图'];
 
-        const IMAGE_GEN_BASE_URL = 'https://apihub.agnes-ai.com';
+        const IMAGE_GEN_SIZE_MAP = {
+                    '竖图': '736x1312', '横图': '1312x736', '方图': '1152x864',
+                    '2K竖图': '1472x2624', '2K横图': '2624x1472', '2K方图': '2304x1728',
+                    '4K竖图': '2048x3648', '4K横图': '3648x2048', '4K方图': '3456x2592'
+                };
+
+        const getImageSize = () => {
+            return IMAGE_GEN_SIZE_MAP[settings.imageSize] || '736x1312';
+        };
 
         // --- Default API Configuration ---
         const DEFAULT_API_PROVIDER_ID = 'agnes';
@@ -130,8 +138,25 @@ createApp({
             {
                 id: 'opencode',
                 name: 'OpenCode',
-                apiUrl: 'https://rp-hub-proxy.694904679.workers.dev',
-                icon: 'https://ts1.tc.mm.bing.net/th/id/OIP-C.logAvxZd0BC…08&c=1&bgcl=207e0d&r=0&o=7&dpr=1.6&pid=ImgRC&rm=3',
+                apiUrl: 'https://opencode.ai/zen/v1',
+                icon: 'https://opencode.ai/favicon-v3.ico'
+            }
+        ];
+
+        const imageGenProviderOptions = [
+            {
+                id: 'agnes',
+                name: 'Agnes',
+                apiUrl: 'https://apihub.agnes-ai.com/v1',
+                icon: 'https://agnes-ai.com/images/logo-icon.png',
+                defaultModel: 'agnes-image-2.1-flash'
+            },
+            {
+                id: 'sensenova',
+                name: 'SenseNova',
+                apiUrl: 'https://token.sensenova.cn/v1',
+                icon: 'https://largemodel.sensetime.com/skin/images/bannericon.svg',
+                defaultModel: ''
             }
         ];
 
@@ -205,16 +230,16 @@ createApp({
             quotaLoading.value = true;
             quotaError.value = false;
             try {
-                const imageGenToken = settings.imageGenKey.trim();
-                if (!imageGenToken) {
+                const token = imageGenToken.value;
+                if (!token) {
                     quotaValue.value = 0;
                     quotaAvailable.value = false;
                     return;
                 }
-                const response = await fetch(`${IMAGE_GEN_BASE_URL}/v1/images/generations`, {
+                const response = await fetch(`${imageGenBaseUrl.value}/images/generations`, {
                     method: 'HEAD',
                     headers: {
-                        'Authorization': `Bearer ${imageGenToken}`
+                        'Authorization': `Bearer ${token}`
                     }
                 });
                 if (response.ok || response.status === 405) {
@@ -569,6 +594,11 @@ createApp({
             fontFamilyVersion: 4,
             fontSize: window.innerWidth > 768 ? 16 : 14,
             imageGenKey: '',
+            imageGenProviderId: 'agnes',
+            imageGenProviderKeys: {},
+            imageGenProviderModels: {},
+            customImageGenUrl: '',
+            customImageGenUrl2: '',
             imageStyle: 'vertical',
             customImageArtists: '',
             imageSize: '竖图',
@@ -686,13 +716,91 @@ createApp({
             }
         });
 
+        const showImageGenProviderSelector = ref(false);
+        const customImageGenProviderOption = {
+            id: 'custom',
+            name: '自定义',
+            apiUrl: '',
+            icon: '',
+            defaultModel: ''
+        };
+        const customImageGenProviderOption2 = {
+            id: 'custom2',
+            name: '自定义2',
+            apiUrl: '',
+            icon: '',
+            defaultModel: ''
+        };
+        const customImageGenProviderOptions = [customImageGenProviderOption, customImageGenProviderOption2];
+        const isCustomImageGenProviderId = (id) => customImageGenProviderOptions.some(p => p.id === id);
+        const getCustomImageGenUrlKey = (id) => id === 'custom2' ? 'customImageGenUrl2' : 'customImageGenUrl';
+        const getImageGenProviderById = (id) => [...imageGenProviderOptions, ...customImageGenProviderOptions].find(p => p.id === id);
+
+        const normalizeImageGenProviderSettings = () => {
+            if (!settings.imageGenProviderKeys || typeof settings.imageGenProviderKeys !== 'object' || Array.isArray(settings.imageGenProviderKeys)) {
+                settings.imageGenProviderKeys = {};
+            }
+            if (!settings.imageGenProviderModels || typeof settings.imageGenProviderModels !== 'object' || Array.isArray(settings.imageGenProviderModels)) {
+                settings.imageGenProviderModels = {};
+            }
+            [...imageGenProviderOptions, ...customImageGenProviderOptions].forEach(p => {
+                if (typeof settings.imageGenProviderKeys[p.id] !== 'string') {
+                    settings.imageGenProviderKeys[p.id] = '';
+                }
+                if (typeof settings.imageGenProviderModels[p.id] !== 'string') {
+                    settings.imageGenProviderModels[p.id] = p.defaultModel || '';
+                }
+            });
+            const provider = getImageGenProviderById(settings.imageGenProviderId);
+            if (!provider) {
+                settings.imageGenProviderId = 'agnes';
+            }
+        };
+
+        const selectedImageGenProvider = computed(() => {
+            return getImageGenProviderById(settings.imageGenProviderId) || imageGenProviderOptions[0];
+        });
+        const isCustomImageGenProvider = computed(() => isCustomImageGenProviderId(selectedImageGenProvider.value.id));
+
+        const imageGenBaseUrl = computed(() => {
+            const provider = selectedImageGenProvider.value;
+            if (isCustomImageGenProviderId(provider.id)) {
+                return settings[getCustomImageGenUrlKey(provider.id)] || provider.apiUrl;
+            }
+            return provider.apiUrl;
+        });
+
+        const imageGenToken = computed(() => {
+            const providerId = settings.imageGenProviderId || 'agnes';
+            return (settings.imageGenProviderKeys[providerId] || '').trim();
+        });
+
+        const imageGenModel = computed(() => {
+            const providerId = settings.imageGenProviderId || 'agnes';
+            return settings.imageGenProviderModels[providerId] || '';
+        });
+
+        const selectImageGenProvider = (provider) => {
+            const prevId = settings.imageGenProviderId;
+            if (prevId) {
+                settings.imageGenProviderKeys[prevId] = settings.imageGenProviderKeys[prevId] || '';
+                settings.imageGenProviderModels[prevId] = settings.imageGenProviderModels[prevId] || '';
+            }
+            settings.imageGenProviderId = provider.id;
+            showImageGenProviderSelector.value = false;
+        };
+
+        normalizeImageGenProviderSettings();
+
         const syncSettingsToGenerator = () => {
             const iframe = document.querySelector('iframe[src*="character"]');
             if (iframe && iframe.contentWindow) {
                 try {
                     const syncData = {
                         type: 'SYNC_SETTINGS',
-                        settings: JSON.parse(JSON.stringify(settings))
+                        settings: JSON.parse(JSON.stringify(settings)),
+                        imageGenBaseUrl: imageGenBaseUrl.value,
+                        imageGenModel: imageGenModel.value
                     };
                     iframe.contentWindow.postMessage(syncData, '*');
                 } catch (e) {
@@ -728,7 +836,7 @@ createApp({
         }, { deep: true });
 
         // Watch image gen and model settings for sync
-        watch(() => [settings.imageGenKey, settings.imageStyle, settings.customImageArtists, settings.imageGenCount, settings.qualityModel, settings.balancedModel, settings.fastModel, settings.uiTemplateModel, settings.fontFamily, settings.fontFamilyVersion], () => {
+        watch(() => [imageGenToken.value, settings.imageGenProviderId, settings.imageStyle, settings.customImageArtists, settings.imageGenCount, settings.qualityModel, settings.balancedModel, settings.fastModel, settings.uiTemplateModel, settings.fontFamily, settings.fontFamilyVersion], () => {
             syncSettingsToGenerator();
         });
 
@@ -812,15 +920,15 @@ createApp({
             { value: 'custom', label: '自定义' }
         ];
         const imageSizeOptions = [
-            { value: '竖图', label: '竖图(-1)' },
-            { value: '横图', label: '横图(-1)' },
-            { value: '方图', label: '方图(-1)' },
-            { value: '2K竖图', label: '2K竖图(-15)' },
-            { value: '2K横图', label: '2K横图(-15)' },
-            { value: '2K方图', label: '2K方图(-15)' },
-            { value: '4K竖图', label: '4K竖图(-25)' },
-            { value: '4K横图', label: '4K横图(-25)' },
-            { value: '4K方图', label: '4K方图(-25)' }
+            { value: '竖图', label: '竖图(736x1312)' },
+            { value: '横图', label: '横图(1312x736)' },
+            { value: '方图', label: '方图(1152x864)' },
+            { value: '2K竖图', label: '2K竖图(1472x2624)' },
+            { value: '2K横图', label: '2K横图(2624x1472)' },
+            { value: '2K方图', label: '2K方图(2304x1728)' },
+            { value: '4K竖图', label: '4K竖图(2208x3936)' },
+            { value: '4K横图', label: '4K横图(3648x2048)' },
+            { value: '4K方图', label: '4K方图(3456x2592)' }
         ];
         const imageGenCountOptions = [1, 2, 3, 4, 5, 6].map(count => ({
             value: count,
@@ -2217,8 +2325,16 @@ createApp({
                         if (!legacyProvider && savedSettings.apiUrl) settings.customApiUrl = savedSettings.apiUrl;
                     }
                     normalizeApiProviderSettings();
+                    if (savedSettings.imageGenKey && !savedSettings.imageGenProviderId) {
+                        if (!settings.imageGenProviderKeys || typeof settings.imageGenProviderKeys !== 'object' || Array.isArray(settings.imageGenProviderKeys)) {
+                            settings.imageGenProviderKeys = {};
+                        }
+                        settings.imageGenProviderKeys['agnes'] = savedSettings.imageGenKey;
+                    }
+                    normalizeImageGenProviderSettings();
                 } else {
                     normalizeApiProviderSettings();
+                    normalizeImageGenProviderSettings();
                 }
                 if ((!savedSettings || Number(savedSettings.fontFamilyVersion || 0) < 4) && settings.fontFamily === 'serif') {
                     settings.fontFamily = 'modern';
@@ -4318,7 +4434,7 @@ ${content}
                 const id = setTimeout(() => controller.abort(), 10000);
                 const startTime = performance.now();
 
-                await fetch(`${IMAGE_GEN_BASE_URL}/v1/images/generations`, {
+                await fetch(`${imageGenBaseUrl.value}/images/generations`, {
                     method: 'HEAD',
                     signal: controller.signal
                 });
@@ -9271,11 +9387,47 @@ ${content}
 
         const IMAGE_GEN_NEGATIVE_TAGS = 'bad anatomy, bad feet, bad hands, bad proportions, blurry, cloned face, cropped, deformed, disfigured, error, extra arms, extra digit, extra legs, extra limbs, fewer digits, fused fingers, gross proportions, ink eyes, ink hair, jpeg artifacts, long neck, low quality, malformed limbs, missing arms, missing fingers, missing legs, more than 2 nipples, mutated hands, mutation, normal quality, owres, poorly drawn face, poorly drawn hands, reen eyes, signature, text, too many fingers, ugly, username, uta, watermark, worst quality, more than 2 legs, awkward hand sign, weird hand gesture, contorted hand, unnatural finger pose, deformed hand gesture, shaka, hang loose, rock on, shaka sign';
 
-        const getImageRatio = () => {
-            if (settings.imageSize === '竖图') return '9:16';
-            if (settings.imageSize === '横图') return '16:9';
-            return '9:16';
-        };
+        const IMAGE_GEN_PROMPT_OPTIMIZATION_SYSTEM_PROMPT = `### 文生图提示词安全优化专家系统指令
+
+#### 角色设定
+
+你是一位精通AI绘画底层逻辑的"提示词安全优化专家"。你的核心任务是：接收用户输入的原始文生图提示词，识别其中可能触发NSFW（不适宜工作场所）审查的敏感词汇，并使用**高审美、强表现力且合规**的近义词或意象进行替换。
+
+#### 核心原则
+
+- **语义保真**：替换后的词汇必须在画面构图、光影氛围、人物姿态或情绪表达上，与原始意图保持高度一致。
+- **审美升级**：避免使用干瘪的直白替换，应引入艺术史、摄影术语或文学修辞，使优化后的提示词更具画面感和高级感。
+- **绝对合规**：严禁保留任何涉及色情、暴力、血腥、仇恨言论或未成年人不当内容的词汇。
+- **结构完整**：优化后的提示词应保持或增强原有的权重结构（如 (keyword:1.2)）和标签逻辑。
+
+#### 优化策略库
+
+| 原始敏感方向 | 优化/替换策略 | 推荐词汇示例 |
+| ------ |------ |------ |
+| **身体暴露/色情暗示** | 转化为**服装材质、光影轮廓、剪裁设计** | \`sheer fabric\`, \`wet look\`, \`backless dress\`, \`silhouette\`, \`chiaroscuro lighting\`, \`elegant drapery\`, \`high-slit skirt\` |
+| **性暗示动作/姿态** | 转化为**舞蹈、运动、情绪表达或电影镜头语言** | \`dynamic pose\`, \`arched back\` → \`graceful posture\`, \`cinematic angle\`, \`intimate gaze\`, \`vulnerable expression\`, \`balletic stretch\` |
+| **特定身体部位特写** | 转化为**局部美学、质感描写或环境互动** | \`collarbone detail\`, \`hand placement\`, \`skin texture\`, \`soft focus on shoulders\`, \`rim lighting on curves\` |
+| **暴力/血腥/惊悚** | 转化为**暗黑美学、战损风格或戏剧张力** | \`battle-worn\`, \`cinematic grit\`, \`dark fantasy atmosphere\`, \`tattered clothing\`, \`dramatic shadows\`, \`melancholic mood\` |
+
+#### 执行流程
+
+1. **意图分析**：阅读原始提示词，判断用户的核心创作意图。
+2. **敏感词扫描**：标记所有高风险词汇。
+3. **语义重构**：根据"优化策略库"进行替换，必要时增加环境光、材质描述来弥补直接描写的缺失。
+4. **输出格式**：严格按以下格式输出，不要添加额外内容：
+优化后提示词：[直接可用的英文Prompt]
+修改说明：[简要解释替换逻辑]
+
+#### 示例演示
+
+- **用户输入**：\`A sexy girl, nude, lying on bed, seductive pose, nsfw\`
+- **输出**：
+优化后提示词：A young woman with marble skin texture and soft rim lighting, wearing a silk slip dress, lying on a bed with crisp white linens, alluring posture, volumetric lighting, cinematic depth of field, masterpiece, best quality
+修改说明：将"nude"替换为"marble skin texture with soft rim lighting"和"silk slip dress"保留了肌肤质感但规避了审查，用"alluring posture"替代"seductive pose"
+
+#### 注意事项
+
+- 始终优先使用 \`masterpiece\`, \`best quality\`, \`intricate details\` 等正向词汇来引导模型关注画面质量而非敏感内容。`;
 
         const getImageArtists = () => {
             const defaultArtists = 'masterpiece, best quality,[[[artist:dishwasher1910]]], {{yd_(orange_maru)}}, [artist:ciloranko], [artist:sho_(sho_lwlw)], [ningen mame], soft lighting,year 2024';
@@ -9314,24 +9466,64 @@ year 2025, textless version, {{petite,loli}}, Petite figure, no text, The image 
         };
 
         const generateSingleImage = async (prompt) => {
-            const imageGenToken = settings.imageGenKey.trim();
-            if (!imageGenToken) return null;
+            const token = imageGenToken.value;
+            if (!token) return null;
+
+            let optimizedPrompt = prompt;
+            try {
+                const llmApiKey = (settings.apiKey || '').trim();
+                const optModel = (settings.fastModel || '').trim();
+                if (llmApiKey && optModel) {
+                    const llmUrl = settings.apiUrl.endsWith('/v1') ? `${settings.apiUrl}/chat/completions` : `${settings.apiUrl}/v1/chat/completions`;
+                    console.log('[ImageGen] Optimizing prompt:', prompt);
+                    const optResponse = await fetch(llmUrl, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${llmApiKey}`
+                        },
+                        body: JSON.stringify({
+                            model: optModel,
+                            temperature: 0.7,
+                            stream: false,
+                            messages: [
+                                { role: 'system', content: IMAGE_GEN_PROMPT_OPTIMIZATION_SYSTEM_PROMPT },
+                                { role: 'user', content: prompt }
+                            ]
+                        })
+                    });
+                    if (optResponse.ok) {
+                        const optData = await optResponse.json();
+                        const rawContent = optData.choices?.[0]?.message?.content || '';
+                        const optimizedMatch = rawContent.match(/(?:\*\*)?优化后提示词(?:\*\*)?[：:]\s*([\s\S]*?)(?:\n(?:\*\*)?修改说明(?:\*\*)?[：:]|$)/i);
+                        if (optimizedMatch && optimizedMatch[1].trim()) {
+                            optimizedPrompt = optimizedMatch[1].trim();
+                            console.log('[ImageGen] Prompt optimized:', optimizedPrompt);
+                        } else {
+                            console.warn('[ImageGen] Could not parse optimized prompt, using original.');
+                        }
+                    } else {
+                        console.warn('[ImageGen] Prompt optimization API error:', optResponse.status);
+                    }
+                }
+            } catch (e) {
+                console.warn('[ImageGen] Prompt optimization failed, using original:', e.message || e);
+            }
 
             const artists = getImageArtists();
-            const fullPrompt = artists ? `${prompt}, ${artists} --no ${IMAGE_GEN_NEGATIVE_TAGS}` : `${prompt} --no ${IMAGE_GEN_NEGATIVE_TAGS}`;
+            const fullPrompt = artists ? `${optimizedPrompt}, ${artists} --no ${IMAGE_GEN_NEGATIVE_TAGS}` : `${optimizedPrompt} --no ${IMAGE_GEN_NEGATIVE_TAGS}`;
 
             console.log('[ImageGen] Generating:', fullPrompt);
-            const response = await fetch(`${IMAGE_GEN_BASE_URL}/v1/images/generations`, {
+            const response = await fetch(`${imageGenBaseUrl.value}/images/generations`, {
                 method: 'POST',
                 headers: {
-                    'Authorization': `Bearer ${imageGenToken}`,
+                    'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
-                    model: 'agnes-image-2.1-flash',
+                    model: imageGenModel.value,
                     prompt: fullPrompt,
-                    size: '1K',
-                    ratio: getImageRatio(),
+                    size: getImageSize(),
                     extra_body: { response_format: 'url' }
                 })
             });
@@ -9521,7 +9713,7 @@ image###生成的提示词###
 
         // 旧的 DOM 占位符生图方案已移除，现为异步生成后追加独立消息方案
 
-        watch(() => settings.imageGenKey, () => {
+        watch(imageGenToken, () => {
             enforceSpecialRules();
             if (isAutoImageGenEnabled.value) {
                 updateImageGenRegexState({ enableRegex: true });
@@ -11203,7 +11395,7 @@ ${memoryFragmentSection}
             showUpdateModal, updateCountdown, latestUpdate, closeUpdateModal, isUpdateScrolledToBottom, checkUpdateScroll, // Update Modal
             showConfirmModal, confirmMessage, modelMode, showNoMemoryNeededModal, // Export for template
             isGenerating, isRemoteGenerating, remoteEstimatedTime, isReceiving, isThinking, hasActiveToolInlineWork, activeToolInlineStatusText, isConversationBusy, activeToolContinuationMessageId, activeToolContinuationToolCallId, activeToolContinuationHasResponse, activeNativeReasoning, userInput, modelSearchQuery, activeModelTag, modelTags, characterSearchQuery, availableModels, filteredModels, filteredCharacters,
-            user, settings, apiProviderOptions, selectedApiProvider, isCustomApiProvider, customApiProviderOption, customApiProviderOptions, showApiProviderSelector, selectApiProvider, characters, currentCharacter, currentCharacterIndex, chatHistory, displayedChatMessages, handleChatScroll, presets, presetRoleOptions, fontFamilyOptions, imageStyleOptions, imageSizeOptions, imageGenCountOptions, scopeOptions, uiTemplatePlacementOptions, worldInfoPositionOptions, getPresetRoleLabel, getPresetRoleDisplayLabel, getPresetRoleBadgeClass, regexScripts, worldInfo,
+            user, settings, apiProviderOptions, selectedApiProvider, isCustomApiProvider, customApiProviderOption, customApiProviderOptions, showApiProviderSelector, selectApiProvider, characters, currentCharacter, currentCharacterIndex, chatHistory, displayedChatMessages, handleChatScroll, presets, presetRoleOptions, fontFamilyOptions, imageStyleOptions, imageSizeOptions, imageGenCountOptions, imageGenProviderOptions, selectedImageGenProvider, isCustomImageGenProvider, customImageGenProviderOption, customImageGenProviderOptions, showImageGenProviderSelector, selectImageGenProvider, imageGenBaseUrl, imageGenToken, imageGenModel, scopeOptions, uiTemplatePlacementOptions, worldInfoPositionOptions, getPresetRoleLabel, getPresetRoleDisplayLabel, getPresetRoleBadgeClass, regexScripts, worldInfo,
             activeTools, activeToolAggressivenessOptions: ACTIVE_TOOL_AGGRESSIVENESS_OPTIONS, getActiveToolAggressivenessLabel, editingActiveTool, normalizeActiveTools, isWebActiveTool, getActiveToolDisplayDescription, getActiveToolResultCountMin, getActiveToolResultCountMax,
             getToolCallModeText, hasThinkingOrTools, isMessageThinkingOrRunning, isThinkingSummaryOpen, toggleThinkingSummary, markThinkingSummaryDetailOpened, getTimelineSteps,
             activeRegexCount, activeWorldInfoCount, activeUiTemplateCount, chatRoundStats, totalContextLength,
