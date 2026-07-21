@@ -1,0 +1,16 @@
+version: '3'  # 指定 docker-compose 语法版本
+services:
+  nginx:
+    image: nginx:stable-alpine  # 使用的镜像
+    container_name: nginx-test  # 容器名称
+    ports:
+      - "8080:80"   # HTTP 端口映射
+      # - "443:443" # HTTPS 端口映射
+    volumes:
+      - ./html:/usr/share/nginx/html   # 网页目录（相对路径，与 yml 同目录）
+      - ./conf:/etc/nginx/conf.d       # 配置目录
+      - ./logs:/var/log/nginx          # 日志目录
+      # - ./certs:/etc/nginx/certs       # 证书目录
+    restart: always  # 容器退出后自动重启（保障服务可用性）
+    environment:
+      - TZ=Asia/Shanghai  # 设置为中国时区(UTC+8)
