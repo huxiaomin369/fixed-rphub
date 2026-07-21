@@ -3847,7 +3847,7 @@ ${content}
             if (isAutoImageGenEnabled.value) return text; // 生图开启时保留
             return String(text)
                 .replace(/<image\b[^>]*>[\s\S]*?<\/image>/gi, '')
-                .replace(/@imageGen@([\s\S]*?)@imageGenEnd@/gi, '')
+                .replace(/@image@([\s\S]*?)@imageEnd@/gi, '')
                 .replace(/[ \t]+\n/g, '\n')
                 .replace(/\n{3,}/g, '\n\n')
                 .trim();
@@ -9563,7 +9563,7 @@ year 2025, textless version, {{petite,loli}}, Petite figure, no text, The image 
         const scheduleImageGenerationFromMessage = async (content) => {
             console.log('[ImageGen] finding image generation triggers in assistant message...');
             if (!content || typeof content !== 'string') return;
-            const regex = /@imageGen@([\s\S]*?)@imageGenEnd@/g;
+            const regex = /@image@([\s\S]*?)@imageEnd@/g;
             const prompts = [];
             let match;
             while ((match = regex.exec(content)) !== null) {
@@ -9605,7 +9605,7 @@ year 2025, textless version, {{petite,loli}}, Petite figure, no text, The image 
 
             const imageGenRegexContent = {
                 name: imageGenRegexName,
-                regex: '/@imageGen@([\\s\\S]*?)@imageGenEnd@/g',
+                regex: '/@image@([\\s\\S]*?)@imageEnd@/g',
                 replacement: '',
                 placement: [2],
                 markdownOnly: true,
@@ -9632,10 +9632,10 @@ year 2025, textless version, {{petite,loli}}, Petite figure, no text, The image 
             const autoImageGenWIContent = {
                 comment: autoImageGenWIName,
                 keys: [],
-                content: `<auto_image_gen>\n用户已开启自动生图。每次回复的正文中必须在合适的位置穿插图片，标准格式为：@imageGen@生成的提示词@imageGenEnd@，不能只输出文字正文；本轮必须生成${imageGenCount}张图片。
+                content: `<auto_image_gen>\n用户已开启自动生图。每次回复的正文中必须在合适的位置穿插图片，标准格式为：@image@生成的提示词@imageEnd@，不能只输出文字正文；本轮必须生成${imageGenCount}张图片。
 使用绘画tag对场景人物进行特写，并保证一个场景拥有${imageGenCount}张图。
 注意:始终使用逗号分隔条目.另外请保证同一角色的特征，如发色，瞳孔颜色，体态，外貌的一致性.
-使用 @imageGen@生成的提示词@imageGenEnd@ 的格式！
+使用 @image@生成的提示词@imageEnd@ 的格式！
 注意：如为nsfw场景，生成的提示词必须带上 nsfw 标签；如果是同人/已有作品角色，角色名仍必须放在最前面，nsfw 紧跟其后。
 
 ###提示词生成指导:
@@ -9700,7 +9700,7 @@ year 2025, textless version, {{petite,loli}}, Petite figure, no text, The image 
 2. **同人角色/固定外观一致性**：对于特定世界观或同人角色，提示词最前面必须放官方英文名或常用角色Tag，并带上极其准确的专属特征Tag组合。对常驻特征（如特定发型、异色瞳、专属装饰物等）加上最高权重 {{{Tag}}}，避免生成外形崩坏和不一致。
 
 <生成格式>
-@imageGen@生成的提示词@imageGenEnd@
+@image@生成的提示词@imageEnd@
 </生成格式>
 </Tag_智能调整>
 
