@@ -43,3 +43,9 @@ pake https://weekly.tw93.fun --name Weekly --icon https://cdn.tw93.fun/pake/week
 
 ```
 
+## 浏览器跨域插件
+```sh
+Allow CORS
+CORS Unblock
+```
+
