@@ -1,6 +1,17 @@
 # AGENTS.md — Roleplay Hub
 
-## Architecture
+本项目包含两个版本：
+
+| 版本 | 目录 | 技术栈 | 状态 |
+|------|------|--------|------|
+| **浏览器版** | `/` (当前) | Vue 3 CDN + 原生 HTML/JS | 原始版，维护模式 |
+| **Electron 桌面版** | `rphub-desktop/` | electron-vite + Vue 3 + Pinia | **重构目标** |
+
+---
+
+## 浏览器版（原始，维护模式）
+
+### Architecture
 
 - **Zero build tools.** No `package.json`, no bundler, no `npm install`. Open `index.html` directly in a browser.
 - All dependencies loaded via CDN: Vue 3, Tailwind CSS, marked, DOMPurify, SortableJS, localforage.
@@ -8,7 +19,7 @@
   - `index.html` — main hub, powered by `assets/js/app.js` (~12K lines monolithic Vue app)
   - `character/index.html` — character card workshop, self-contained inline Vue app; uses DaisyUI "cupcake" theme
 
-## JS file loading order (critical)
+### JS file loading order (critical)
 
 In `index.html`, scripts must load in this order:
 1. `assets/js/utils.js` — pure globals (`generateUUID`, `formatTimeAgo`, `parseCot`)
@@ -18,7 +29,7 @@ In `index.html`, scripts must load in this order:
 
 `character/index.html` only loads `card-utils.js` and `ui-select.js` (from `../assets/js/`).
 
-## Development
+### Development
 
 - No linter, no typecheck, no tests. Make changes in the JS files directly and reload the browser to verify.
 - `app.js` uses Vue 3 Options API (`setup()` returning reactive state). State is persisted via `localforage` (IndexedDB).
@@ -26,13 +37,52 @@ In `index.html`, scripts must load in this order:
 - `assets/css/styles.css` is cache-busted via a timestamp query string in `index.html`.
 - Respect existing patterns: `Proxy` wrappers for deferred module access, `window.RPHub*` namespacing for shared libs.
 
-## Deployment
+### Deployment
 
 ```sh
 npm install -g pinme
 pinme login
 pinme upload .
 ```
+
+---
+
+## Electron 桌面版（重构目标 → `rphub-desktop/`）
+
+### 重构动机
+
+解决浏览器版的两个核心痛点：
+1. **CORS / API 跨域** — 原始版需要 `proxy-worker.js` 或浏览器 CORS 扩展才能调用 AI API
+2. **~12K app.js 单体** — 难以维护，功能耦合严重
+
+### Architecture
+
+- **electron-vite** 构建工具链，Vite HMR 开发
+- `electron/main/index.js` — 主进程，`BrowserWindow` + `webSecurity: false`（CORS 根治）
+- `electron/preload/index.js` — `contextBridge`，暴露 `window.electronAPI`
+- 渲染进程：Vue 3 Options API + Pinia 状态管理 + `<component :is>` 视图路由
+- 所有依赖通过 npm 管理，零 CDN
+- 数据持久化保留 `localforage`（IndexedDB）
+
+### Development
+
+```bash
+cd rphub-desktop
+npm run dev       # 启动开发模式
+npm run build     # 构建产物
+npm run package:linux  # 打包 Linux AppImage
+```
+
+详细说明见 `rphub-desktop/AGENTS.md`。
+
+### 与浏览器版的关系
+
+- `rphub-desktop/` 是独立项目，有独立的 `package.json`
+- 源文件从 `assets/js/` 和 `index.html` 移植到 `rphub-desktop/src/`
+- `rphub-desktop/character/index.html` 作为 Vite 多入口构建
+- 浏览器版继续可用，但新功能优先在桌面版开发
+
+---
 
 ## Conventions
 

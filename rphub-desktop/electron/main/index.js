@@ -1,0 +1,34 @@
+const { app, BrowserWindow } = require('electron')
+const { join } = require('path')
+const { registerHandlers } = require('../ipc-handlers')
+
+let mainWindow
+
+function createWindow() {
+  mainWindow = new BrowserWindow({
+    width: 1280,
+    height: 800,
+    minWidth: 900,
+    minHeight: 600,
+    webPreferences: {
+      webSecurity: false,
+      contextIsolation: true,
+      nodeIntegration: false,
+      preload: join(__dirname, '../preload/index.js')
+    }
+  })
+
+  registerHandlers(mainWindow)
+
+  if (process.env.ELECTRON_RENDERER_URL) {
+    mainWindow.loadURL(process.env.ELECTRON_RENDERER_URL)
+  } else {
+    mainWindow.loadFile(join(__dirname, '../renderer/index.html'))
+  }
+}
+
+app.whenReady().then(createWindow)
+
+app.on('window-all-closed', () => {
+  if (process.platform !== 'darwin') app.quit()
+})
