@@ -168,6 +168,57 @@ test('parseSections strips trailing section markers', () => {
   assertEq(r.name, 'Alice', 'name still present despite trailing empty header')
 })
 
+import { parseFlexibleJsonItems, normalizeWorldInfo, normalizeRegexScript } from '../src/services/characterGenerator.js'
+
+test('parseFlexibleJsonItems parses clean JSON array', () => {
+  const r = parseFlexibleJsonItems('[{"a":1},{"a":2}]')
+  assertEq(r.length, 2, 'count')
+  assertEq(r[0].a, 1, 'a=1')
+})
+
+test('parseFlexibleJsonItems strips json fence', () => {
+  const r = parseFlexibleJsonItems('```json\n[{"a":1}]\n```')
+  assertEq(r.length, 1, 'count after fence')
+})
+
+test('parseFlexibleJsonItems returns empty on bad JSON', () => {
+  const r = parseFlexibleJsonItems('not json at all')
+  assertEq(r.length, 0, 'empty')
+})
+
+test('parseFlexibleJsonItems handles single object', () => {
+  const r = parseFlexibleJsonItems('{"a":1}')
+  assertEq(r.length, 1, 'single obj')
+  assertEq(r[0].a, 1, 'a=1')
+})
+
+test('normalizeWorldInfo fills defaults', () => {
+  const w = normalizeWorldInfo({ keys: ['k'], content: 'c' })
+  assertEq(w.comment, '', 'default comment')
+  assertEq(w.position, 0, 'default position')
+  assertEq(w.order, 100, 'default order')
+  assertEq(w.depth, 4, 'default depth')
+  assertEq(w.probability, 100, 'default probability')
+  assertEq(w.constant, false, 'default constant')
+  assertEq(w.keys[0], 'k', 'keys preserved')
+  assertEq(w.content, 'c', 'content preserved')
+})
+
+test('normalizeWorldInfo drops unknown fields', () => {
+  const w = normalizeWorldInfo({ keys: [], content: 'c', randomExtra: 'x' })
+  assertEq(w.randomExtra, undefined, 'unknown dropped')
+})
+
+test('normalizeRegexScript fills defaults', () => {
+  const r = normalizeRegexScript({ name: 'n', regex: 'r', replace: 'x' })
+  assertEq(r.flags, 'g', 'default flags')
+  assertEq(r.placement[0], 1, 'default placement')
+  assertEq(r.enabled, true, 'default enabled')
+  assertEq(r.markdownOnly, false, 'default markdownOnly')
+  assertEq(r.promptOnly, false, 'default promptOnly')
+  assertEq(r.depth, 4, 'default depth')
+})
+
 // ────────────────────────────────────────────────────────────
 
 console.log(`\n${passed} passed, ${failed} failed`)

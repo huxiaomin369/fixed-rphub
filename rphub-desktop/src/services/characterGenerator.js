@@ -53,3 +53,87 @@ export function parseSections(visibleText) {
   }
   return result
 }
+
+/**
+ * Robustly extract an array of objects from a JSON-ish string.
+ * Strips ```json fences, tolerates trailing commas, falls back to empty array.
+ */
+export function parseFlexibleJsonItems(rawText) {
+  if (!rawText) return []
+  // Strip code fences
+  let s = rawText.replace(/```json\s*/gi, '').replace(/```/g, '').trim()
+  // Find the first '[' and the matching closing ']' (naive, no string handling)
+  const start = s.indexOf('[')
+  if (start < 0) {
+    // Maybe it's a single object — try wrapping
+    const objStart = s.indexOf('{')
+    const objEnd = s.lastIndexOf('}')
+    if (objStart >= 0 && objEnd > objStart) {
+      const candidate = s.slice(objStart, objEnd + 1)
+      try { return [JSON.parse(candidate)] } catch { return [] }
+    }
+    return []
+  }
+  // Find last ']' from the end
+  const end = s.lastIndexOf(']')
+  if (end <= start) return []
+  const candidate = s.slice(start, end + 1)
+  // Remove trailing commas before ] or }
+  const cleaned = candidate.replace(/,(\s*[\]}])/g, '$1')
+  try {
+    const parsed = JSON.parse(cleaned)
+    return Array.isArray(parsed) ? parsed : [parsed]
+  } catch {
+    return []
+  }
+}
+
+const WORLD_INFO_DEFAULTS = {
+  comment: '',
+  keys: [],
+  content: '',
+  position: 0,
+  order: 100,
+  depth: 4,
+  probability: 100,
+  constant: false
+}
+
+const ALLOWED_WORLD_INFO_FIELDS = Object.keys(WORLD_INFO_DEFAULTS)
+
+/**
+ * Map a raw AI-generated world-info entry to the desktop's stored schema.
+ * Drops unknown fields, fills missing fields with defaults.
+ */
+export function normalizeWorldInfo(raw) {
+  const out = { ...WORLD_INFO_DEFAULTS }
+  if (!raw || typeof raw !== 'object') return out
+  for (const key of ALLOWED_WORLD_INFO_FIELDS) {
+    if (raw[key] !== undefined) out[key] = raw[key]
+  }
+  if (typeof out.keys === 'string') out.keys = [out.keys]
+  return out
+}
+
+const REGEX_SCRIPT_DEFAULTS = {
+  name: '',
+  regex: '',
+  replace: '',
+  flags: 'g',
+  placement: [1],
+  enabled: true,
+  markdownOnly: false,
+  promptOnly: false,
+  depth: 4
+}
+
+const ALLOWED_REGEX_SCRIPT_FIELDS = Object.keys(REGEX_SCRIPT_DEFAULTS)
+
+export function normalizeRegexScript(raw) {
+  const out = { ...REGEX_SCRIPT_DEFAULTS }
+  if (!raw || typeof raw !== 'object') return out
+  for (const key of ALLOWED_REGEX_SCRIPT_FIELDS) {
+    if (raw[key] !== undefined) out[key] = raw[key]
+  }
+  return out
+}
