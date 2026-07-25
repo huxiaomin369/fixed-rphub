@@ -344,6 +344,34 @@ test('runNewGeneration respects AbortSignal', async () => {
   restoreFetch()
 })
 
+import { runDiffGeneration } from '../src/services/characterGenerator.js'
+
+test('runDiffGeneration parses diff blocks from stream', async () => {
+  const chunks = [
+    'data: {"choices":[{"delta":{"content":"<<<<<<<FIND\\n###path###personality\\nold\\n"}}]}\n\n',
+    'data: {"choices":[{"delta":{"content":"=======\\nnew\\n>>>>>>>REPLACE"}}]}\n\n',
+    'data: [DONE]\n\n'
+  ]
+  setFetchMock(sseResponse(chunks))
+
+  const diffs = []
+  let done = null
+  await runDiffGeneration({
+    character: { name: 'A', description: 'B', personality: 'old' },
+    userPrompt: 'make it cooler',
+    baseURL: 'https://api.example.com/v1', apiKey: 'k', model: 'm',
+    onSection: (e) => diffs.push(e),
+    onDone: (e) => { done = e }
+  })
+
+  assertEq(diffs.length, 1, 'one diff block')
+  assertEq(diffs[0].field, 'personality', 'field')
+  assertEq(diffs[0].find, 'old', 'find')
+  assertEq(diffs[0].replace, 'new', 'replace')
+  assert(done !== null, 'onDone fired')
+  restoreFetch()
+})
+
 // ────────────────────────────────────────────────────────────
 
 console.log(`\n${passed} passed, ${failed} failed`)

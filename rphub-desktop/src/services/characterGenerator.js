@@ -441,3 +441,99 @@ export async function runNewGeneration(opts) {
 
   onDone({ sections: lastSections, truncated: false, usedStream: stream })
 }
+
+const DIFF_SYSTEM_PROMPT = `你是角色卡编辑助手. 你的任务是按用户的要求修改角色卡.
+
+输出格式严格如下, 每个改动一个 FIND/REPLACE 块:
+
+<<<<<<<FIND
+###path###<字段名>
+<字段当前完整内容>
+=======
+<新内容>
+>>>>>>>REPLACE
+
+字段名只能是以下之一: name, description, personality, first_mes, creator_notes.
+
+如果用户没要求改某个字段, 就不要输出该字段的块.
+
+严格按格式输出, 不要加任何额外解释或开场白.`
+
+const DIFF_FIELD_LABELS = {
+  name: '角色名称',
+  description: '角色描述',
+  personality: '设定',
+  first_mes: '开场白',
+  creator_notes: '作者注释'
+}
+
+/**
+ * Stream an AI response that modifies an existing character card.
+ * Emits one onSection per parsed diff block.
+ * Callbacks: onProgress({status, percent}), onSection({field, find, replace}),
+ *            onDone({diffs, truncated}), onError(error)
+ */
+export async function runDiffGeneration(opts) {
+  const { character, userPrompt, baseURL, apiKey, model, signal,
+          onProgress = () => {}, onSection = () => {},
+          onDone = () => {}, onError = () => {} } = opts
+  const stream = opts.stream !== false
+
+  // Build a context summary so the model knows current values
+  const ctx = ['【当前角色卡】']
+  for (const field of Object.keys(DIFF_FIELD_LABELS)) {
+    if (character[field]) ctx.push(`${field}: ${character[field]}`)
+  }
+  const userContent = `${ctx.join('\n')}\n\n【用户的修改要求】\n${userPrompt}\n\n请输出 FIND/REPLACE 块:`
+
+  const messages = [
+    { role: 'system', content: DIFF_SYSTEM_PROMPT },
+    { role: 'user', content: userContent }
+  ]
+
+  let reader
+  try {
+    reader = await apiRequest({ baseURL, apiKey, model, messages, stream, signal, temperature: 0.7 })
+  } catch (err) { onError(err); return }
+
+  onProgress({ status: '正在等待API响应...', percent: 10 })
+
+  if (!stream) {
+    try {
+      const data = await reader.json()
+      const content = data.choices?.[0]?.message?.content || ''
+      const diffs = parseDiffBlocks(content)
+      for (const d of diffs) onSection(d)
+      onDone({ diffs, truncated: false, usedStream: false })
+    } catch (err) { onError(err) }
+    return
+  }
+
+  let visibleText = ''
+  const seen = new Set()
+  try {
+    for await (const delta of streamSse(reader, signal)) {
+      visibleText += delta
+      const blocks = parseDiffBlocks(visibleText)
+      for (const b of blocks) {
+        const key = `${b.field}::${b.find}`
+        if (seen.has(key)) continue
+        seen.add(key)
+        onSection(b)
+        onProgress({ status: `正在修改: ${DIFF_FIELD_LABELS[b.field] || b.field}`, percent: 50 })
+      }
+    }
+  } catch (err) {
+    if (err.name === 'AbortError') return
+    onError(err)
+    return
+  }
+
+  const diffs = parseDiffBlocks(visibleText)
+  const truncated = diffs.length === 0
+  if (truncated && stream) {
+    onProgress({ status: '检测到内容截断, 切换非流式重试...', percent: 90 })
+    return runDiffGeneration({ ...opts, stream: false })
+  }
+  onDone({ diffs, truncated: false, usedStream: stream })
+}
