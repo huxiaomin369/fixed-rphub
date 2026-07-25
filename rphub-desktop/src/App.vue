@@ -14,6 +14,18 @@
     <div class="app-main flex-1 flex flex-col h-full overflow-hidden bg-gray-50 relative">
       <component :is="currentViewComponent" />
     </div>
+
+    <!-- Global confirm dialog (driven by ui.confirmDialog) -->
+    <ConfirmModal
+      :show="ui.confirmDialog.open"
+      :title="ui.confirmDialog.title"
+      :message="ui.confirmDialog.message"
+      :confirm-text="ui.confirmDialog.confirmText"
+      :cancel-text="ui.confirmDialog.cancelText"
+      :confirm-button-class="ui.confirmDialog.confirmButtonClass"
+      @confirm="ui.handleConfirmDialog()"
+      @cancel="ui.closeConfirmDialog()"
+    />
   </div>
 </template>
 
@@ -22,6 +34,7 @@ import { computed } from 'vue'
 import { useUIStore } from './stores/ui'
 import Sidebar from './components/sidebar/Sidebar.vue'
 import ToastStack from './components/common/ToastStack.vue'
+import ConfirmModal from './components/common/ConfirmModal.vue'
 
 import ChatView from './views/ChatView.vue'
 import CharacterView from './views/CharacterView.vue'
@@ -53,7 +66,7 @@ const viewMap = {
 
 export default {
   name: 'App',
-  components: { Sidebar, ToastStack },
+  components: { Sidebar, ToastStack, ConfirmModal },
   setup() {
     const ui = useUIStore()
     const currentViewComponent = computed(() => viewMap[ui.currentView] || ChatView)

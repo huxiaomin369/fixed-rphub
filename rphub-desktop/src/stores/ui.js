@@ -43,6 +43,55 @@ export const useUIStore = defineStore('ui', () => {
     isSidebarCollapsed.value = !isSidebarCollapsed.value
   }
 
+  // Generic confirm dialog state — wired to <ConfirmModal> in App.vue.
+  const confirmDialog = ref({
+    open: false,
+    title: '',
+    message: '',
+    confirmText: '确认',
+    cancelText: '取消',
+    confirmButtonClass: 'bg-red-500 hover:bg-red-600',
+    onConfirm: null
+  })
+
+  function showConfirmDialog(opts) {
+    confirmDialog.value = {
+      open: true,
+      title: opts.title || '确认操作',
+      message: opts.message || '',
+      confirmText: opts.confirmText || '确认',
+      cancelText: opts.cancelText || '取消',
+      confirmButtonClass: opts.confirmButtonClass || 'bg-primary-500 hover:bg-primary-600',
+      onConfirm: opts.onConfirm || null
+    }
+  }
+
+  function closeConfirmDialog() {
+    confirmDialog.value = { ...confirmDialog.value, open: false, onConfirm: null }
+  }
+
+  function handleConfirmDialog() {
+    const cb = confirmDialog.value.onConfirm
+    closeConfirmDialog()
+    if (typeof cb === 'function') cb()
+  }
+
+  /**
+   * Show a "已保存, 立即去工坊进一步编辑?" confirm.
+   * On confirm: invokes the existing electronAPI.openWorkshop(charData) (passes the
+   * full character object, NOT just an id — see the IPC contract in electron/preload).
+   */
+  function promptOpenWorkshop(character) {
+    showConfirmDialog({
+      title: '继续编辑?',
+      message: `已保存「${character.name}」, 立即去工坊进一步编辑?`,
+      confirmText: '打开工坊',
+      cancelText: '留在此处',
+      confirmButtonClass: 'bg-primary-500 hover:bg-primary-600',
+      onConfirm: () => window.electronAPI?.openWorkshop?.(character)
+    })
+  }
+
   return {
     currentView,
     isSidebarCollapsed,
@@ -50,12 +99,17 @@ export const useUIStore = defineStore('ui', () => {
     toasts,
     isAdvancedNavOpen,
     isChatFullscreen,
+    confirmDialog,
     addToast,
     closeMobileMenu,
     toggleMobileMenu,
     toggleAdvancedNav,
     toggleChatFullscreen,
     setCurrentView,
-    toggleSidebar
+    toggleSidebar,
+    showConfirmDialog,
+    closeConfirmDialog,
+    handleConfirmDialog,
+    promptOpenWorkshop
   }
 })
