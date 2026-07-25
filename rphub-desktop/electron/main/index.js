@@ -1,6 +1,6 @@
-const { app, BrowserWindow } = require('electron')
-const { join } = require('path')
-const { registerHandlers } = require('../ipc-handlers')
+import { app, BrowserWindow } from 'electron'
+import { join } from 'path'
+import { registerHandlers } from '../ipc-handlers.js'
 
 let mainWindow
 

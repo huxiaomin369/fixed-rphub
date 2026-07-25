@@ -1,3 +1,5 @@
+@import "tailwindcss";
+
         :root {
             --app-visual-height: 100vh;
             --keyboard-inset: 0px;

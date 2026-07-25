@@ -1,6 +1,6 @@
-const { ipcMain, dialog, app } = require('electron')
-const { readFile, writeFile } = require('fs/promises')
-const { openWorkshop } = require('./workshop')
+import { ipcMain, dialog, app } from 'electron'
+import { readFile, writeFile } from 'fs/promises'
+import { openWorkshop, closeWorkshop } from './workshop.js'
 
 function registerHandlers(mainWindow) {
   // File dialogs
@@ -139,10 +139,8 @@ function registerHandlers(mainWindow) {
     if (mainWindow && !mainWindow.isDestroyed()) {
       mainWindow.webContents.send('workshop:update', updatedCharacter)
     }
-    // Close workshop window after save
-    const { closeWorkshop } = require('./workshop')
     closeWorkshop()
   })
 }
 
-module.exports = { registerHandlers }
+export { registerHandlers }

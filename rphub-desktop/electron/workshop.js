@@ -1,5 +1,5 @@
-const { BrowserWindow } = require('electron')
-const { join } = require('path')
+import { BrowserWindow } from 'electron'
+import { join } from 'path'
 
 let workshopWindow = null
 
@@ -44,4 +44,4 @@ function closeWorkshop() {
   }
 }
 
-module.exports = { openWorkshop, closeWorkshop }
+export { openWorkshop, closeWorkshop }
