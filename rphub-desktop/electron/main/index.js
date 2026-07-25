@@ -1,10 +1,11 @@
-import { app, BrowserWindow } from 'electron'
+import { app, BrowserWindow, Menu } from 'electron'
 import { join } from 'path'
 import { registerHandlers } from '../ipc-handlers.js'
 
 let mainWindow
 
 function createWindow() {
+  Menu.setApplicationMenu(null)
   mainWindow = new BrowserWindow({
     width: 1280,
     height: 800,
