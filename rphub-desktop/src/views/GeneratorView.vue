@@ -143,6 +143,10 @@
                   class="inline-flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-primary-500 to-purple-500 text-white rounded-xl hover:from-primary-600 hover:to-purple-600 transition-all shadow-sm text-sm font-medium disabled:opacity-50">
                   {{ isGeneratingAvatar ? '生成中...' : 'AI 生成头像' }}
                 </button>
+                <p v-if="sections.avatar_prompt" class="text-xs text-gray-500">
+                  <span class="inline-block mr-1 px-1.5 py-0.5 text-[10px] bg-primary-50 text-primary-700 rounded font-bold">AI 提示词</span>
+                  {{ sections.avatar_prompt.length > 80 ? sections.avatar_prompt.slice(0, 80) + '…' : sections.avatar_prompt }}
+                </p>
                 <input ref="fileInput" type="file" accept="image/*" class="hidden" @change="handleAvatarUpload" />
               </div>
             </div>
@@ -240,6 +244,10 @@ export default {
       if (!sections.value.name?.trim()) { ui.addToast('请先输入角色名称', 'warning'); return }
       isGeneratingAvatar.value = true
       try {
+        // Prefer the AI-generated avatar prompt if the LLM provided one; fall
+        // back to a hand-built prompt that summarizes the character fields.
+        const avatarPromptText = sections.value.avatar_prompt
+          || `Anime portrait of a character named ${sections.value.name}, ${sections.value.description || ''}, ${sections.value.personality || ''}, anime style, high quality, facial close-up`
         const imageGenKey = settings.imageGenKey
         if (imageGenKey && settings.imageGenProviderId) {
           const apiUrl = settings.customImageGenUrl || 'https://apihub.agnes-ai.com/v1'
@@ -248,7 +256,7 @@ export default {
             headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${imageGenKey}` },
             body: JSON.stringify({
               model: 'dall-e-3',
-              prompt: `Anime portrait of a character named ${sections.value.name}, ${sections.value.description || ''}, ${sections.value.personality || ''}, anime style, high quality, facial close-up`,
+              prompt: avatarPromptText,
               n: 1, size: '1024x1024'
             })
           })
