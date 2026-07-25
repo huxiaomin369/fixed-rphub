@@ -153,3 +153,138 @@ export function parseDiffBlocks(text) {
   }
   return out
 }
+
+import { apiRequest } from '../api/index.js'
+
+/**
+ * Async-iterate over an SSE response body, yielding each `delta.content` text.
+ * Stops at [DONE]. Throws AbortError on signal.
+ */
+export async function* streamSse(reader, signal) {
+  const decoder = new TextDecoder()
+  let buffer = ''
+  while (true) {
+    if (signal?.aborted) throw Object.assign(new Error('aborted'), { name: 'AbortError' })
+    const { done, value } = await reader.read()
+    if (done) break
+    buffer += decoder.decode(value, { stream: true })
+    const lines = buffer.split('\n')
+    buffer = lines.pop() || ''
+    for (const line of lines) {
+      const trimmed = line.trim()
+      if (!trimmed || !trimmed.startsWith('data:')) continue
+      const payload = trimmed.slice(5).trim()
+      if (payload === '[DONE]') return
+      try {
+        const json = JSON.parse(payload)
+        const delta = json.choices?.[0]?.delta?.content
+        if (delta) yield delta
+      } catch {
+        // ignore malformed lines
+      }
+    }
+  }
+}
+
+const SECTION_FIELD_LABELS = {
+  name: '角色名称',
+  description: '角色描述',
+  personality: '设定',
+  first_mes: '开场白',
+  post_history_instructions: '后续指令',
+  creator_notes: '作者注释',
+  avatar_prompt: '头像',
+  world_info_json: '世界书',
+  regex_scripts_json: '正则脚本'
+}
+
+const PROGRESS_MILESTONES = {
+  name: 30, description: 45, personality: 60, first_mes: 75,
+  post_history_instructions: 80, creator_notes: 82, avatar_prompt: 84,
+  world_info_json: 88, regex_scripts_json: 92
+}
+
+/**
+ * Stream an OpenAI-compatible chat completion, parse sections as they appear,
+ * and emit them via callbacks. Auto-retries once with stream=false on truncation.
+ *
+ * Callbacks:
+ *   onProgress({ status, percent })
+ *   onSection({ field, value })
+ *   onDone({ sections, truncated, usedStream })
+ *   onError(error)
+ */
+export async function runNewGeneration(opts) {
+  const { prompt, baseURL, apiKey, model, signal,
+          onProgress = () => {}, onSection = () => {},
+          onDone = () => {}, onError = () => {} } = opts
+  const stream = opts.stream !== false
+  const temperature = opts.temperature ?? 1
+  const maxTokens = opts.maxTokens ?? 8192
+
+  const messages = [
+    { role: 'system', content: SINGLE_PLAYER_SYSTEM_PROMPT },
+    { role: 'user',   content: `### 用户的描述\n${prompt}\n\n请开始生成。` }
+  ]
+
+  let reader
+  try {
+    reader = await apiRequest({ baseURL, apiKey, model, messages, stream, signal, temperature, max_tokens: maxTokens })
+  } catch (err) {
+    onError(err)
+    return
+  }
+
+  if (!stream) {
+    // Non-streaming path: parse the full response at once
+    onProgress({ status: '正在等待API响应...', percent: 10 })
+    try {
+      const data = await reader.json()
+      const content = stripInlineThinking(data.choices?.[0]?.message?.content || '')
+      const sections = parseSections(content)
+      for (const [field, value] of Object.entries(sections)) {
+        onSection({ field, value })
+        onProgress({ status: `正在生成: ${SECTION_FIELD_LABELS[field] || field}`, percent: PROGRESS_MILESTONES[field] || 50 })
+      }
+      const truncated = !sections.name || !sections.description || !sections.personality || !sections.first_mes
+      onDone({ sections, truncated, usedStream: false })
+    } catch (err) {
+      onError(err)
+    }
+    return
+  }
+
+  onProgress({ status: '正在等待API响应...', percent: 10 })
+
+  let visibleText = ''
+  let lastSections = {}
+  try {
+    for await (const delta of streamSse(reader, signal)) {
+      visibleText += delta
+      const cleaned = stripInlineThinking(visibleText)
+      const sections = parseSections(cleaned)
+      for (const { field } of SECTION_HEADERS) {
+        if (sections[field] && sections[field] !== lastSections[field]) {
+          onSection({ field, value: sections[field] })
+          lastSections[field] = sections[field]
+          onProgress({
+            status: `正在生成: ${SECTION_FIELD_LABELS[field] || field}`,
+            percent: PROGRESS_MILESTONES[field] || 50
+          })
+        }
+      }
+    }
+  } catch (err) {
+    if (err.name === 'AbortError') return  // silent
+    onError(err)
+    return
+  }
+
+  const truncated = !lastSections.name || !lastSections.description || !lastSections.personality || !lastSections.first_mes
+  if (truncated && stream) {
+    onProgress({ status: '检测到内容截断, 切换非流式重试...', percent: 90 })
+    return runNewGeneration({ ...opts, stream: false })
+  }
+
+  onDone({ sections: lastSections, truncated: false, usedStream: stream })
+}

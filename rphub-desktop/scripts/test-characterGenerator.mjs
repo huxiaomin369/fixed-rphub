@@ -285,6 +285,65 @@ new` // no >>>>>>>REPLACE
   assertEq(r.length, 0, 'malformed ignored')
 })
 
+import { runNewGeneration } from '../src/services/characterGenerator.js'
+
+test('runNewGeneration streams and fills all primary fields', async () => {
+  const chunks = [
+    'data: {"choices":[{"delta":{"content":"### Name\\nAlice\\n### Description\\nA brave knight\\n### Personality\\nBold\\n### First Message\\nHello"}}]}\n\n',
+    'data: {"choices":[{"delta":{"content":", traveler."}}]}\n\n',
+    'data: [DONE]\n\n'
+  ]
+  setFetchMock(sseResponse(chunks))
+
+  const sections = {}
+  const events = []
+  await runNewGeneration({
+    prompt: 'a knight',
+    baseURL: 'https://api.example.com/v1',
+    apiKey: 'test-key',
+    model: 'test-model',
+    stream: true,
+    onProgress: (e) => events.push({ kind: 'progress', ...e }),
+    onSection: (e) => { sections[e.field] = e.value },
+    onDone: (e) => events.push({ kind: 'done', ...e }),
+    onError: (e) => events.push({ kind: 'error', error: e.message })
+  })
+
+  assertEq(sections.name, 'Alice', 'name')
+  assertEq(sections.description, 'A brave knight', 'description')
+  assertEq(sections.personality, 'Bold', 'personality')
+  assertEq(sections.first_mes, 'Hello, traveler.', 'first_mes')
+  assert(events.some(e => e.kind === 'done'), 'onDone fired')
+  restoreFetch()
+})
+
+test('runNewGeneration onError fires on fetch failure', async () => {
+  setFetchMock(async () => ({ ok: false, status: 401, text: async () => 'unauthorized' }))
+  let err = null
+  await runNewGeneration({
+    prompt: 'p', baseURL: 'x', apiKey: 'k', model: 'm',
+    onError: (e) => { err = e }
+  })
+  assert(err !== null, 'error fired')
+  assert(err.message.includes('401'), 'error has status')
+  restoreFetch()
+})
+
+test('runNewGeneration respects AbortSignal', async () => {
+  const ac = new AbortController()
+  setFetchMock(sseResponse(['data: {"choices":[{"delta":{"content":"### Name\\nAlice"}}]}\n\n']))
+  let err = null
+  // Abort before run
+  ac.abort()
+  await runNewGeneration({
+    prompt: 'p', baseURL: 'x', apiKey: 'k', model: 'm', signal: ac.signal,
+    onError: (e) => { err = e }
+  })
+  // AbortError should be silent (not surfaced as onError)
+  assertEq(err, null, 'abort is silent')
+  restoreFetch()
+})
+
 // ────────────────────────────────────────────────────────────
 
 console.log(`\n${passed} passed, ${failed} failed`)
