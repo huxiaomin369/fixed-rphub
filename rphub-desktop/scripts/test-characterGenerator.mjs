@@ -67,6 +67,33 @@ test('scaffold runs', () => {
   assertEq(1 + 1, 2, 'sanity')
 })
 
+import { stripInlineThinking } from '../src/services/characterGenerator.js'
+
+test('stripInlineThinking removes <think> blocks', () => {
+  assertEq(
+    stripInlineThinking('before<think>reasoning</think>after'),
+    'beforeafter',
+    'removes think tag'
+  )
+})
+
+test('stripInlineThinking removes [THINK] blocks', () => {
+  assertEq(
+    stripInlineThinking('a[THINK]hidden[/THINK]b'),
+    'ab',
+    'removes square-bracket THINK tag'
+  )
+})
+
+test('stripInlineThinking handles multiline blocks', () => {
+  const input = 'visible<think>\nline 1\nline 2\n</think>visible2'
+  assertEq(stripInlineThinking(input), 'visiblevisible2', 'multiline')
+})
+
+test('stripInlineThinking passes through clean text', () => {
+  assertEq(stripInlineThinking('no markers here'), 'no markers here', 'passthrough')
+})
+
 // ────────────────────────────────────────────────────────────
 
 console.log(`\n${passed} passed, ${failed} failed`)
