@@ -1,4 +1,5 @@
 import { createApp, ref, reactive, onMounted } from 'vue'
+import * as diffModal from './diff-modal.js'
 
 createApp({
   setup() {
@@ -67,8 +68,31 @@ createApp({
       originalSnapshot.value = JSON.parse(JSON.stringify(character.value))
     }
 
+    function setupAIAssistant() {
+      // Expose the workshop's toast function so diff-modal.js can use it
+      // (it falls back to inline toast if not present, but ours is better).
+      window.__workshopToast = showToast
+
+      const btn = document.getElementById('ai-assistant-btn')
+      if (btn) {
+        btn.addEventListener('click', () => {
+          if (!character.value) {
+            showToast('尚未加载角色, 请稍候', 'warning')
+            return
+          }
+          diffModal.open(character.value)
+        })
+      }
+
+      // When a diff is applied, mark dirty so the save button enables.
+      document.addEventListener('ai-assistant:apply', () => {
+        markDirty()
+      })
+    }
+
     onMounted(() => {
       setupIPC()
+      setupAIAssistant()
       // If no data received after a short delay, load fallback
       setTimeout(() => {
         if (!character.value) {

@@ -34,6 +34,13 @@
         <span v-if="character" class="text-xs text-gray-400">编辑：{{ character.name || '未命名角色' }}</span>
       </div>
       <div class="flex items-center gap-2">
+        <button id="ai-assistant-btn" type="button"
+          class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-all shadow-sm flex items-center gap-1.5">
+          <svg class="w-4 h-4 text-primary-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+          </svg>
+          AI 助手
+        </button>
         <button @click="saveCharacter"
           :disabled="!dirty"
           class="px-4 py-2 text-sm font-medium rounded-xl transition-all"
@@ -162,6 +169,7 @@
     </div>
   </div>
 
+  <script type="module" src="./diff-modal.js"></script>
   <script type="module" src="./app.js"></script>
 </body>
 </html>
