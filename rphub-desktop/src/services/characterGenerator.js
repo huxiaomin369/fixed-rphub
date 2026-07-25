@@ -137,3 +137,19 @@ export function normalizeRegexScript(raw) {
   }
   return out
 }
+
+/**
+ * Extract FIND/REPLACE blocks from a diff-mode AI response.
+ * Each block: <<<<<<<FIND\n###path###<field>\n<old>\n=======\n<new>\n>>>>>>>REPLACE
+ * Returns an array of { field, find, replace }. Malformed blocks are skipped.
+ */
+export function parseDiffBlocks(text) {
+  if (!text) return []
+  const re = /<<<<<<<FIND\s*\n###path###([a-z_]+)\n([\s\S]*?)\n=======\n([\s\S]*?)\n>>>>>>>REPLACE/g
+  const out = []
+  let m
+  while ((m = re.exec(text)) !== null) {
+    out.push({ field: m[1], find: m[2], replace: m[3] })
+  }
+  return out
+}

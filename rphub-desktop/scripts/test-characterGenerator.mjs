@@ -219,6 +219,72 @@ test('normalizeRegexScript fills defaults', () => {
   assertEq(r.depth, 4, 'default depth')
 })
 
+import { parseDiffBlocks } from '../src/services/characterGenerator.js'
+
+test('parseDiffBlocks extracts a single block', () => {
+  const text = `<<<<<<<FIND
+###path###personality
+old content
+=======
+new content
+>>>>>>>REPLACE`
+  const r = parseDiffBlocks(text)
+  assertEq(r.length, 1, 'count')
+  assertEq(r[0].field, 'personality', 'field')
+  assertEq(r[0].find, 'old content', 'find')
+  assertEq(r[0].replace, 'new content', 'replace')
+})
+
+test('parseDiffBlocks extracts multiple blocks', () => {
+  const text = `<<<<<<<FIND
+###path###personality
+old1
+=======
+new1
+>>>>>>>REPLACE
+<<<<<<<FIND
+###path###first_mes
+old2
+=======
+new2
+>>>>>>>REPLACE`
+  const r = parseDiffBlocks(text)
+  assertEq(r.length, 2, 'count')
+  assertEq(r[0].field, 'personality', 'first field')
+  assertEq(r[1].field, 'first_mes', 'second field')
+})
+
+test('parseDiffBlocks handles multiline content', () => {
+  const text = `<<<<<<<FIND
+###path###description
+line 1
+line 2
+=======
+line A
+line B
+line C
+>>>>>>>REPLACE`
+  const r = parseDiffBlocks(text)
+  assertEq(r[0].find, 'line 1\nline 2', 'multiline find')
+  assertEq(r[0].replace, 'line A\nline B\nline C', 'multiline replace')
+})
+
+test('parseDiffBlocks returns empty for no blocks', () => {
+  const r = parseDiffBlocks('just some plain text')
+  assertEq(r.length, 0, 'empty')
+})
+
+test('parseDiffBlocks ignores malformed blocks', () => {
+  // Missing the closing marker
+  const text = `<<<<<<<FIND
+###path###name
+old
+=======
+new` // no >>>>>>>REPLACE
+  const r = parseDiffBlocks(text)
+  assertEq(r.length, 0, 'malformed ignored')
+})
+
 // ────────────────────────────────────────────────────────────
 
 console.log(`\n${passed} passed, ${failed} failed`)
