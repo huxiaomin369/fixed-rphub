@@ -5,7 +5,7 @@
 | 版本 | 目录 | 技术栈 | 状态 |
 |------|------|--------|------|
 | **浏览器版** | `/` (当前) | Vue 3 CDN + 原生 HTML/JS | 原始版，维护模式 |
-| **Electron 桌面版** | `rphub-desktop/` | electron-vite + Vue 3 + Pinia | **重构目标** |
+| **Electron 桌面版** | `rphub-desktop/` | electron-vite + Vue 3 + Pinia + Tailwind v4 | **重构目标 + 已带 AI 角色卡生成** |
 
 ---
 
@@ -59,10 +59,12 @@ pinme upload .
 
 - **electron-vite** 构建工具链，Vite HMR 开发
 - `electron/main/index.js` — 主进程，`BrowserWindow` + `webSecurity: false`（CORS 根治）
-- `electron/preload/index.js` — `contextBridge`，暴露 `window.electronAPI`
+- `electron/preload/index.js` — `contextBridge`，暴露 `window.electronAPI`（主窗口）和 `window.workshopAPI`（工坊窗口）
 - 渲染进程：Vue 3 Options API + Pinia 状态管理 + `<component :is>` 视图路由
+- **AI 角色卡生成**：`src/services/characterGenerator.js` 纯函数模块（无 Vue/Pinia 依赖），`src/composables/useGenerator.js` 包装成响应式状态，工坊窗口自包含的 `character/ai-assistant.js` 提供 diff 编辑
 - 所有依赖通过 npm 管理，零 CDN
 - 数据持久化保留 `localforage`（IndexedDB）
+- 详细分层、测试脚本、Tailwind v4 注意事项、IPC 通道见 `rphub-desktop/AGENTS.md`
 
 ### Development
 
