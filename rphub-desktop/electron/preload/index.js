@@ -24,6 +24,16 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.on('workshop:load', (_, data) => callback(data))
   },
 
+  // Settings sync (main window → main process → workshop window)
+  pushSettings: (settings) => ipcRenderer.send('settings:update', settings),
+
   // App info
   getVersion: () => ipcRenderer.invoke('app:version')
+})
+
+contextBridge.exposeInMainWorld('workshopAPI', {
+  // Workshop window asks the main process for the latest settings the
+  // main window has pushed (the workshop cannot read the main window's
+  // Pinia state directly — they're separate renderers).
+  requestSettings: () => ipcRenderer.invoke('workshop:request-settings')
 })

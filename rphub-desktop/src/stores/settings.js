@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { ref, reactive } from 'vue'
+import { ref, reactive, watch } from 'vue'
 import localforage from 'localforage'
 
 const DEFAULT_SETTINGS = {
@@ -55,7 +55,19 @@ export const useSettingsStore = defineStore('settings', () => {
       console.error('Failed to load settings:', err)
     }
     settingsLoaded.value = true
+    // Push initial state to the main process so the workshop window can
+    // request them on open.
+    pushToMainProcess()
   }
+
+  // Mirror the latest settings to the main process whenever they change,
+  // so the workshop window (separate BrowserWindow) can fetch them on open.
+  function pushToMainProcess() {
+    if (typeof window !== 'undefined' && window.electronAPI?.pushSettings) {
+      window.electronAPI.pushSettings({ ...settings })
+    }
+  }
+  watch(settings, () => pushToMainProcess(), { deep: true })
 
   async function saveSettings() {
     try {

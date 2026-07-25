@@ -2,6 +2,11 @@ import { ipcMain, dialog, app } from 'electron'
 import { readFile, writeFile } from 'fs/promises'
 import { openWorkshop, closeWorkshop } from './workshop.js'
 
+// Cache the most recent settings pushed from the main window, so the
+// workshop window (separate BrowserWindow, separate renderer) can ask
+// for them via `workshop:request-settings`.
+let currentSettings = null
+
 function registerHandlers(mainWindow) {
   // File dialogs
   ipcMain.handle('dialog:openFile', async (_, options) => {
@@ -140,6 +145,17 @@ function registerHandlers(mainWindow) {
       mainWindow.webContents.send('workshop:update', updatedCharacter)
     }
     closeWorkshop()
+  })
+
+  // Main window pushes its current settings here whenever they change.
+  // The workshop window can then ask for them via workshop:request-settings.
+  ipcMain.on('settings:update', (_, settings) => {
+    currentSettings = settings
+  })
+
+  // Workshop window asks for the latest settings the main window has pushed.
+  ipcMain.handle('workshop:request-settings', () => {
+    return currentSettings
   })
 }
 
