@@ -5,6 +5,7 @@ import { useSettingsStore } from '../stores/settings'
 import { usePresetsStore } from '../stores/presets'
 import { useUIStore } from '../stores/ui'
 import { applyPersonToggle } from '../services/userProfile'
+import { usePresets } from './usePresets'
 
 export function useUserProfile() {
   const settingsStore = useSettingsStore()
@@ -25,6 +26,8 @@ export function useUserProfile() {
     settingsStore.updateActiveProfile({ person })
     presetsStore.presets = applyPersonToggle(presetsStore.presets, person)
     presetsStore.savePresets()
+    usePresets().syncPersonPresets(person)
+    usePresets().save()
   }
 
   return { activeProfile, switchProfile, setPerson }
