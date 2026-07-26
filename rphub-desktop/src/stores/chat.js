@@ -8,6 +8,7 @@ import { usePresetsStore } from './presets'
 import { useWorldInfoStore } from './worldinfo'
 import { useRegexStore } from './regex'
 import { useCharacterStore } from './characters'
+import { useMemoryStore } from './memory'
 import { formatPresetsForSystemPrompt, buildPreludeMessages, getBreakLimitContent } from '../services/presetInjector'
 import { scanWorldInfo } from '../services/worldInfoScanner'
 import { applyRegexScripts } from '../services/regexEngine'
@@ -245,15 +246,23 @@ export const useChatStore = defineStore('chat', () => {
       settings: worldInfoStore.worldInfoSettings,
     })
 
+    // Build interpolation context (for {{memoryContext}} etc.)
+    const memoryStore = useMemoryStore()
+    const ctx = {
+      memoryContext: Array.isArray(memoryStore.memories)
+        ? memoryStore.memories.map(m => m.content || '').filter(Boolean).join('\n\n')
+        : '',
+    }
+
     // Build system prompt parts in order
     const systemParts = []
 
     // 1. 破限 lead
-    const breakLimit = getBreakLimitContent(allPresets)
+    const breakLimit = getBreakLimitContent(allPresets, ctx)
     if (breakLimit) systemParts.push(breakLimit)
 
     // 2. System Presets block (everything except 破限)
-    const presetBlock = formatPresetsForSystemPrompt(allPresets)
+    const presetBlock = formatPresetsForSystemPrompt(allPresets, ctx)
     if (presetBlock) systemParts.push(presetBlock)
 
     // 3. World info global_note entries
@@ -289,7 +298,7 @@ export const useChatStore = defineStore('chat', () => {
     const messages = [{ role: 'system', content: systemContent }]
 
     // 7. Prelude preset messages (after system, before greeting)
-    const prelude = buildPreludeMessages(allPresets)
+    const prelude = buildPreludeMessages(allPresets, ctx)
     for (const m of prelude) {
       messages.push({ role: m.role, content: m.content })
     }

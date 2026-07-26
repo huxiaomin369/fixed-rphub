@@ -131,14 +131,14 @@ test('chat.js imports all preset/WI/regex service functions', () => {
 
 test('chat.js buildApiMessages integrates 破限/presets/WI/regex in correct order', () => {
   // 破限 lead — first push (line after 'systemParts.push(')
-  assertContains(chatJs, 'getBreakLimitContent(allPresets)',
-    'should call getBreakLimitContent')
-  assert(chatJs.indexOf('getBreakLimitContent(allPresets)') < chatJs.indexOf('formatPresetsForSystemPrompt(allPresets)'),
+  assertContains(chatJs, 'getBreakLimitContent(allPresets, ctx)',
+    'should call getBreakLimitContent with ctx')
+  assert(chatJs.indexOf('getBreakLimitContent(allPresets, ctx)') < chatJs.indexOf('formatPresetsForSystemPrompt(allPresets, ctx)'),
     '破限 should be resolved before system preset block')
 
   // System Presets block
-  assertContains(chatJs, 'formatPresetsForSystemPrompt(allPresets)',
-    'should call formatPresetsForSystemPrompt')
+  assertContains(chatJs, 'formatPresetsForSystemPrompt(allPresets, ctx)',
+    'should call formatPresetsForSystemPrompt with ctx')
 
   // WI global_note entries
   assertContains(chatJs, 'scanResult.systemNoteEntries',
@@ -147,8 +147,8 @@ test('chat.js buildApiMessages integrates 破限/presets/WI/regex in correct ord
     'should have global knowledge header')
 
   // Prelude messages inserted after system, before greeting
-  assertContains(chatJs, 'buildPreludeMessages(allPresets)',
-    'should call buildPreludeMessages')
+  assertContains(chatJs, 'buildPreludeMessages(allPresets, ctx)',
+    'should call buildPreludeMessages with ctx')
   assertContains(chatJs, 'messages.push({ role: m.role, content: m.content })',
     'should push prelude messages into messages array')
 

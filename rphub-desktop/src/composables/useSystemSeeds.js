@@ -23,9 +23,10 @@ export function useSystemSeeds() {
     const person = activeProfile?.person ?? 'second'
     presets.syncPersonPresets(person)
     regex.syncUserNameReplacement()
-    // 自动生图 WI is enabled iff user has configured an imageGen key. Defer detailed
-    // sync to Task 4.2 (imageGen toggle hook). Here we just leave the seed at its default.
-    // worldInfo.syncAutoImageGenWI(!!settings.settings.imageGenProviderKeys?.agnes)
+    // 自动生图 WI is enabled iff user has configured an imageGen key for the active provider
+    const providerId = settings.settings.imageGenProviderId
+    const key = settings.settings.imageGenProviderKeys?.[providerId]
+    worldInfo.syncAutoImageGenWI(!!key && key.length > 0)
 
     // Persist once
     presets.save()
