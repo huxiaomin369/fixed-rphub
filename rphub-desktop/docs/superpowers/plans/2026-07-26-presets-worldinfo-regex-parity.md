@@ -613,8 +613,7 @@ const NAIImageRegex = normalizeRegexScript({
   regex: '/@image@([\\s\\S]*?)@imageEnd@/g',
   flags: 'g',
   replacement: '',
-  placement: [2],        // prompt only (strip from display after NAI renders it)
-  markdownOnly: true,
+  placement: [1],        // display only: strip the tag from the rendered message
   scope: 'global',
   enabled: false,         // opt-in
   systemSeed: true,
@@ -812,8 +811,8 @@ t('NAI_IMAGE_REGEX_NAME constant', NAI_IMAGE_REGEX_NAME === 'NAI画图正则')
 t('all have systemSeed=true', BUILTIN_REGEX.every(s => s.systemSeed === true))
 t('all have scope=global', BUILTIN_REGEX.every(s => s.scope === 'global'))
 t('Auto Replace has placement [1,2]', JSON.stringify(BUILTIN_REGEX.find(s => s.name === USER_REPLACE_REGEX_NAME).placement) === '[1,2]')
-t('NAI has placement [2]', JSON.stringify(BUILTIN_REGEX.find(s => s.name === NAI_IMAGE_REGEX_NAME).placement) === '[2]')
-t('NAI has markdownOnly=true', BUILTIN_REGEX.find(s => s.name === NAI_IMAGE_REGEX_NAME).markdownOnly === true)
+t('NAI has placement [1]', JSON.stringify(BUILTIN_REGEX.find(s => s.name === NAI_IMAGE_REGEX_NAME).placement) === '[1]')
+t('NAI has markdownOnly=false', BUILTIN_REGEX.find(s => s.name === NAI_IMAGE_REGEX_NAME).markdownOnly === false)
 t('NAI default enabled=false', BUILTIN_REGEX.find(s => s.name === NAI_IMAGE_REGEX_NAME).enabled === false)
 t('Auto Replace default enabled=true', BUILTIN_REGEX.find(s => s.name === USER_REPLACE_REGEX_NAME).enabled === true)
 t('isBuiltinRegexName(Auto Replace {{user}}) is true', isBuiltinRegexName(USER_REPLACE_REGEX_NAME))
@@ -2398,6 +2397,7 @@ git commit -m "feat(services): add scopeResolver"
 ```js
 // src/services/presetInjector.js
 // Format system presets into the [System Presets] block; build prelude messages.
+// Interpolate {{...}} placeholders (e.g. COT's {{memoryContext}}).
 
 const SYSTEM_HEADER = '【系统提示词】以下是本对话的所有系统级预设，编号顺序即加载顺序。请严格遵守其中每一条规则：\n\n'
 const PRELUDE_ORDER = [
@@ -2407,33 +2407,47 @@ const PRELUDE_ORDER = [
   { role: 'assistant', name: '破限预注入 · AI 2' },
 ]
 
+/**
+ * Substitute {{key}} placeholders in `content` with values from `ctx`.
+ * Unknown keys are replaced with empty string.
+ * @param {string} content
+ * @param {Record<string,string>} ctx
+ * @returns {string}
+ */
+export function interpolatePresetContent(content = '', ctx = {}) {
+  return String(content).replace(/\{\{([a-zA-Z0-9_]+)\}\}/g, (_, key) => {
+    return Object.prototype.hasOwnProperty.call(ctx, key) ? String(ctx[key]) : ''
+  })
+}
+
 export function isSystemPreset(p) {
   return p?.role === 'system' && p?.name !== '破限'
 }
 
-export function formatPresetsForSystemPrompt(presets = []) {
+export function formatPresetsForSystemPrompt(presets = [], ctx = {}) {
   const systemPresets = presets.filter(isSystemPreset).filter(p => p.enabled !== false)
   if (systemPresets.length === 0) return ''
   let out = SYSTEM_HEADER
   systemPresets.forEach((p, i) => {
-    out += `${i + 1}. [${p.name}]\n${p.content}\n\n`
+    const interpolated = interpolatePresetContent(p.content, ctx)
+    out += `${i + 1}. [${p.name}]\n${interpolated}\n\n`
   })
   return out.trim()
 }
 
-export function buildPreludeMessages(presets = []) {
+export function buildPreludeMessages(presets = [], ctx = {}) {
   const messages = []
   for (const { role, name } of PRELUDE_ORDER) {
     const p = presets.find(x => x.name === name && x.enabled !== false)
-    if (p) messages.push({ role, content: p.content })
+    if (p) messages.push({ role, content: interpolatePresetContent(p.content, ctx) })
   }
   return messages
 }
 
-export function getBreakLimitContent(presets = []) {
+export function getBreakLimitContent(presets = [], ctx = {}) {
   // Return 破限's content (or empty if disabled/missing)
   const p = presets.find(x => x.name === '破限' && x.enabled !== false)
-  return p ? p.content : ''
+  return p ? interpolatePresetContent(p.content, ctx) : ''
 }
 ```
 
@@ -2620,14 +2634,17 @@ console.log('--- {{user}} replacement ---')
 
 console.log('--- NAI image strip ---')
 {
-  const s = { name: 'NAI画图正则', regex: '/@image@[\\s\\S]*?@imageEnd@/g', flags: 'g', replacement: '', enabled: true, placement: [2], markdownOnly: true }
-  t('strips image tag in prompt', applyRegexScripts({
+  const s = { name: 'NAI画图正则', regex: '/@image@[\\s\\S]*?@imageEnd@/g', flags: 'g', replacement: '', enabled: true, placement: [1] }
+  t('strips image tag in display', applyRegexScripts({
+    text: 'before @image@prompt@imageEnd@ after',
+    scripts: [s],
+    options: { applyTo: 'display' },
+  }) === 'before  after')
+  t('preserves image tag in prompt', applyRegexScripts({
     text: 'before @image@prompt@imageEnd@ after',
     scripts: [s],
     options: { applyTo: 'prompt' },
-  }) === 'before @image@prompt@imageEnd@ after') // markdownOnly prevents strip in prompt
-  // Note: markdownOnly means skip in prompt. So NAI strip in prompt is a contradiction.
-  // Real fix: remove markdownOnly from NAI script, OR change strategy. For now, document.
+  }) === 'before @image@prompt@imageEnd@ after')
 }
 
 console.log(`\nResults: ${passed} passed, ${failed} failed`)
@@ -3090,23 +3107,38 @@ git commit -m "feat(profile): sync person toggle to presets"
 
 ---
 
-### Task 4.2: Wire `useImageGenTrigger` → `syncAutoImageGenWI`
+### Task 4.2: Wire imageGen toggle → `syncAutoImageGenWI`
 
 **Files:**
-- Modify: `src/composables/useImageGenTrigger.js`
+- Modify: `src/stores/settings.js` (where the imageGen toggle action lives)
 
-- [ ] **Step 1: Add the call**
+- [ ] **Step 1: Find the imageGen toggle action**
 
-When image-gen is toggled on/off, call `useWorldInfo().syncAutoImageGenWI(enabled)`.
+Look in `src/stores/settings.js` for the action that updates `imageGenEnabled` / `apiStatus` / similar fields. If it doesn't exist, find the place where image-gen is toggled in the UI (likely `src/components/settings/ImageGenSection.vue` or the settings store action that handles the connection toggle).
 
-- [ ] **Step 2: Verify in dev**
+- [ ] **Step 2: Add the sync call**
 
-Toggle 自动生图 in settings, navigate to 世界书, confirm the 自动生图 entry's enabled state mirrors the toggle.
+After the toggle is set, call:
 
-- [ ] **Step 3: Commit**
+```js
+import { useWorldInfo } from '../composables/useWorldInfo.js'
+// ...
+const worldInfo = useWorldInfo()
+worldInfo.syncAutoImageGenWI(!!newValue)
+worldInfo.save()
+worldInfo.saveGlobal()
+```
+
+If the toggle lives in a composable, wire it there. If it lives directly in a component, add the call in the component's setter method.
+
+- [ ] **Step 3: Verify in dev**
+
+Toggle 自动生图 in settings (the test connection button, or the auto-gen enable toggle if present), navigate to 世界书, confirm the 自动生图 entry's enabled state mirrors the toggle.
+
+- [ ] **Step 4: Commit**
 
 ```bash
-git add src/composables/useImageGenTrigger.js
+git add src/stores/settings.js
 git commit -m "feat(imagegen): sync toggle to 自动生图 WI"
 ```
 
