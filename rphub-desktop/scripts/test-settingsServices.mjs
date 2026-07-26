@@ -170,6 +170,11 @@ test('styleToArtists returns artist string for known styles', () => {
   assert(r18.includes('misaka'), 'r18 contains misaka')
 })
 
+test('styleToArtists for vertical returns default artist tags', () => {
+  const a = styleToArtists('vertical', '')
+  assert(a.includes('dishwasher1910'), 'vertical should include defaultArtists')
+})
+
 test('styleToArtists returns custom or empty for unknown', () => {
   assertEq(styleToArtists('custom', 'my artist'), 'my artist')
   assertEq(styleToArtists('custom', ''), '')

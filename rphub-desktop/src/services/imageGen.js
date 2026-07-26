@@ -3,6 +3,8 @@
 // STYLE_ARTISTS 来自网页版 assets/js/app.js:9443-9458（原文在 9461-9473 的条件分支中引用）
 // SIZE_DIMS 来自网页版 IMAGE_GEN_SIZE_MAP（同一文件）
 
+import { normalizeProviderUrl } from './apiProviders.js'
+
 export const IMAGE_STYLES = [
   { value: 'vertical',    label: '韩漫小清新风' },
   { value: 'comicDoujin', label: '动漫同人风' },
@@ -48,6 +50,9 @@ export function sizeToDims(sizeValue) {
  * 如果 style === 'custom'，返回 customArtists。
  */
 const STYLE_ARTISTS = {
+  // 来源 app.js:9442 (const defaultArtists)
+  vertical: 'masterpiece, best quality,[[[artist:dishwasher1910]]], {{yd_(orange_maru)}}, [artist:ciloranko], [artist:sho_(sho_lwlw)], [ningen mame], soft lighting,year 2024',
+
   // 来源 app.js:9443 (const comicDoujinArtists)
   comicDoujin: 'masterpiece, best quality, very aesthetic, modern Japanese anime, official anime art, anime key visual, anime screencap, soft cel shading, soft anime coloring, smooth color transitions, natural skin tones, restrained color palette, slightly desaturated, muted colors, soft ambient lighting, gentle contrast, subtle gradients, subtle bloom, detailed anime background',
 
@@ -79,8 +84,6 @@ export function styleToArtists(style, customArtists) {
   if (style === 'custom') return String(customArtists || '').trim()
   return STYLE_ARTISTS[style] || ''
 }
-
-import { normalizeProviderUrl } from './apiProviders.js'
 
 /**
  * POST {baseURL}/images/generations
