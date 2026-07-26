@@ -89,6 +89,7 @@ export const useChatStore = defineStore('chat', () => {
 
     // Hoisted to function scope so finally block can reference it
     let assistantMsg
+    let wasAborted = false
 
     try {
       const baseURL = settings.apiUrl.replace(/\/+$/, '')
@@ -179,6 +180,7 @@ export const useChatStore = defineStore('chat', () => {
       }
     } catch (err) {
       if (err.name === 'AbortError') {
+        wasAborted = true
         console.log('Generation cancelled')
       } else {
         console.error('Generation error:', err)
@@ -193,14 +195,16 @@ export const useChatStore = defineStore('chat', () => {
       isThinking.value = false
       isReceiving.value = false
       saveChatHistory()
-      // 触发文生图（不阻塞 UI）— 发生在 abortController 置 null 之前，可传递 signal
-      try {
-        const { useImageGenTrigger } = await import('../composables/useImageGenTrigger.js')
-        const trigger = useImageGenTrigger()
-        await trigger.processMessageImages(assistantMsg, settings, abortController.value?.signal)
-        saveChatHistory()
-      } catch (e) {
-        console.warn('ImageGen trigger failed:', e)
+      // 触发文生图（不阻塞 UI）— 仅当用户未取消生成时才执行
+      if (!wasAborted && assistantMsg) {
+        try {
+          const { useImageGenTrigger } = await import('../composables/useImageGenTrigger.js')
+          const trigger = useImageGenTrigger()
+          await trigger.processMessageImages(assistantMsg, settings, undefined)
+          saveChatHistory()
+        } catch (e) {
+          console.warn('ImageGen trigger failed:', e)
+        }
       }
       abortController.value = null
     }

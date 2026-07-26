@@ -37,6 +37,7 @@ const DEFAULT_SETTINGS = {
   customImageArtists: '',
   imageSize: '竖图',
   imageGenCount: 2,
+  imageGenModel: '',
   qualityModel: '',
   balancedModel: '',
   fastModel: '',
@@ -90,6 +91,7 @@ export const useSettingsStore = defineStore('settings', () => {
       const { profiles, activeProfileId } = migrateLegacyUser(settings.user)
       settings.userProfiles = profiles
       settings.activeProfileId = activeProfileId
+      delete settings.user
     }
     // 兜底：保证至少一个 profile
     if (!settings.userProfiles.length) {
@@ -110,7 +112,11 @@ export const useSettingsStore = defineStore('settings', () => {
       window.electronAPI.pushSettings({ ...settings })
     }
   }
-  watch(settings, () => pushToMainProcess(), { deep: true })
+  let pushTimer = null
+  watch(settings, () => {
+    if (pushTimer) clearTimeout(pushTimer)
+    pushTimer = setTimeout(() => pushToMainProcess(), 300)
+  }, { deep: true })
 
   async function saveSettings() {
     try {

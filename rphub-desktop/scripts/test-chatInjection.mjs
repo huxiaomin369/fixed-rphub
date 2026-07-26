@@ -31,6 +31,12 @@ function assert(cond, msg) {
   if (!cond) throw new Error(msg || 'assertion failed')
 }
 
+function assertEq(actual, expected, msg) {
+  if (actual !== expected) {
+    throw new Error(`${msg || 'assertEq'}\n      expected: ${JSON.stringify(expected)}\n      actual:   ${JSON.stringify(actual)}`)
+  }
+}
+
 function assertContains(haystack, needle, msg) {
   if (!haystack.includes(needle)) {
     throw new Error(`${msg || 'assertContains'}\n      expected to contain: ${JSON.stringify(needle)}`)
@@ -94,6 +100,20 @@ test('chat.js declares let assistantMsg (scope hoisting)', () => {
   if (!chatJs.includes('assistantMsg = reactiveMessage')) {
     throw new Error('assistantMsg should be assigned (not const-declared) inside try block')
   }
+})
+
+// ─── Behavioral tests for buildUserInfoPrompt ──────────
+
+test('buildUserInfoPrompt: both name and description', async () => {
+  const { buildUserInfoPrompt } = await import('../src/services/userProfile.js')
+  const out = buildUserInfoPrompt({ name: 'Alice', description: 'kind soul' })
+  assertEq(out, '[User Info]\nName: Alice\nDescription: kind soul')
+})
+
+test('buildUserInfoPrompt: name only', async () => {
+  const { buildUserInfoPrompt } = await import('../src/services/userProfile.js')
+  const out = buildUserInfoPrompt({ name: 'Bob' })
+  assertEq(out, '[User Info]\nName: Bob\nDescription: ')
 })
 
 // ─── Run all ────────────────────────────────────────────
