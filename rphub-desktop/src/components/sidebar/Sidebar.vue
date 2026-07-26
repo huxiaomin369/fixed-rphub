@@ -194,14 +194,22 @@
 </template>
 
 <script>
+import { computed } from 'vue'
 import { useUIStore } from '../../stores/ui'
+import { useSettingsStore } from '../../stores/settings'
 
 export default {
   name: 'AppSidebar',
   setup() {
     const ui = useUIStore()
-    // Hard-coded user stub for now
-    const user = { name: '用户', avatar: null }
+    const settingsStore = useSettingsStore()
+    const settings = settingsStore.settings
+
+    const user = computed(() => {
+      const active = settings.userProfiles.find(p => p.uuid === settings.activeProfileId)
+      return active || { name: '用户', avatar: '' }
+    })
+
     return { ui, user }
   }
 }
