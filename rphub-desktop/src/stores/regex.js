@@ -1,6 +1,8 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import localforage from 'localforage'
+import { ensureSeedRegex } from '../services/seedDefaults.js'
+import { useCharacterStore } from './characters.js'
 
 export const useRegexStore = defineStore('regex', () => {
   const regexScripts = ref([])
@@ -24,47 +26,58 @@ export const useRegexStore = defineStore('regex', () => {
   }
 
   async function loadRegex() {
+    let combined = []
     try {
       const data = await localforage.getItem('regex')
-      regexScripts.value = (data || []).map(s => normalizeRegexScript(s, 'character'))
+      combined = (data || []).map(s => {
+        // Backfill missing scope — default to 'character'
+        const scope = s.scope === 'global' ? 'global' : 'character'
+        return normalizeRegexScript(s, scope)
+      })
     } catch (err) {
       console.error('Failed to load regex scripts:', err)
-      regexScripts.value = []
+      combined = []
     }
 
-    try {
-      const data = await localforage.getItem('global_regex')
-      globalRegexScripts.value = (data || []).map(s => normalizeRegexScript(s, 'global'))
-    } catch (err) {
-      console.error('Failed to load global regex scripts:', err)
-      globalRegexScripts.value = []
-    }
+    // Merge built-in seeds (idempotent)
+    const merged = ensureSeedRegex(combined)
+
+    // Split into character and global arrays
+    regexScripts.value = merged.filter(s => s.scope !== 'global')
+    globalRegexScripts.value = merged.filter(s => s.scope === 'global')
 
     regexLoaded.value = true
   }
 
   async function saveRegex() {
     try {
-      await localforage.setItem('regex', regexScripts.value)
+      const combined = [...regexScripts.value, ...globalRegexScripts.value]
+      await localforage.setItem('regex', combined)
     } catch (err) {
       console.error('Failed to save regex scripts:', err)
     }
   }
 
   async function saveGlobalRegex() {
-    try {
-      await localforage.setItem('global_regex', globalRegexScripts.value)
-    } catch (err) {
-      console.error('Failed to save global regex scripts:', err)
-    }
+    // Deprecated — global entries are saved as part of saveRegex()
+    await saveRegex()
   }
 
   function addRegexScript(script) {
-    regexScripts.value.push(normalizeRegexScript(script, 'character'))
+    // Default scope: 'character' if a character is loaded, otherwise 'global'
+    const charStore = useCharacterStore()
+    const scope = charStore.currentCharacter ? 'character' : 'global'
+    const entry = normalizeRegexScript(script, scope)
+    if (scope === 'global') {
+      globalRegexScripts.value.push(entry)
+    } else {
+      regexScripts.value.push(entry)
+    }
   }
 
   function removeRegexScript(index) {
     if (index >= 0 && index < regexScripts.value.length) {
+      if (regexScripts.value[index].systemSeed === true) return
       regexScripts.value.splice(index, 1)
     }
   }
@@ -89,6 +102,7 @@ export const useRegexStore = defineStore('regex', () => {
 
   function removeGlobalRegexScript(index) {
     if (index >= 0 && index < globalRegexScripts.value.length) {
+      if (globalRegexScripts.value[index].systemSeed === true) return
       globalRegexScripts.value.splice(index, 1)
     }
   }

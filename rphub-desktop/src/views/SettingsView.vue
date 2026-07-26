@@ -102,11 +102,11 @@
               <label class="text-sm font-medium text-gray-700">上下文大小</label>
               <span class="text-sm text-gray-500 tabular-nums">{{ formatContextSize(settings.contextSize) }}</span>
             </div>
-            <input type="range" min="4096" max="131072" step="4096" v-model.number="settings.contextSize"
+            <input type="range" min="4096" max="1048576" step="4096" v-model.number="settings.contextSize"
               class="w-full h-2 bg-gray-100 rounded-lg appearance-none cursor-pointer accent-primary-500" />
             <div class="flex justify-between text-xs text-gray-400 mt-1">
               <span>4K</span>
-              <span>128K</span>
+              <span>1M</span>
             </div>
           </div>
         </div>
@@ -185,7 +185,7 @@ export default {
         } else {
           // Fallback for non-Electron: use localforage directly
           const allData = {}
-          const stores = ['settings', 'characters', 'presets', 'worldinfo', 'global_worldinfo', 'regex', 'global_regex', 'memories', 'classic_memories', 'memory_settings', 'worldinfo_settings']
+          const stores = ['settings', 'characters', 'presets', 'worldinfo', 'global_worldinfo', 'regex', 'memories', 'classic_memories', 'memory_settings', 'worldinfo_settings']
           for (const key of stores) {
             try {
               allData[key] = await localforage.getItem(key)
