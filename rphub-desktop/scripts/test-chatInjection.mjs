@@ -75,6 +75,27 @@ test('buildUserInfoPrompt produces [User Info] block format', async () => {
   assertContains(out, 'Description: kind')
 })
 
+// ─── Chat generator scope fix checks ───────────────────
+
+test('chat.js hoists assistantMsg (no const inside try block)', () => {
+  // Regression: assistantMsg was const inside try, invisible to finally
+  // Now it should be declared with let outside try
+  const constMatch = chatJs.match(/const\s+assistantMsg\s*=/) || chatJs.match(/const\s+assistantMsg\s+\{/)
+  if (constMatch) {
+    throw new Error('assistantMsg should not be declared with const at block scope')
+  }
+})
+
+test('chat.js declares let assistantMsg (scope hoisting)', () => {
+  if (!chatJs.includes('let assistantMsg')) {
+    throw new Error('assistantMsg should be declared with let (hoisted to function scope)')
+  }
+  // Verify the reassignment (not const) exists inside try
+  if (!chatJs.includes('assistantMsg = reactiveMessage')) {
+    throw new Error('assistantMsg should be assigned (not const-declared) inside try block')
+  }
+})
+
 // ─── Run all ────────────────────────────────────────────
 
 Promise.allSettled(testPromises).then(() => {

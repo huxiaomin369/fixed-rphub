@@ -87,11 +87,14 @@ export const useChatStore = defineStore('chat', () => {
     // Build messages array for API
     const messages = buildApiMessages(character, settings)
 
+    // Hoisted to function scope so finally block can reference it
+    let assistantMsg
+
     try {
       const baseURL = settings.apiUrl.replace(/\/+$/, '')
 
       // Create assistant message placeholder
-      const assistantMsg = reactiveMessage({
+      assistantMsg = reactiveMessage({
         role: 'assistant',
         name: character.name,
         content: '',
@@ -189,17 +192,17 @@ export const useChatStore = defineStore('chat', () => {
       isGenerating.value = false
       isThinking.value = false
       isReceiving.value = false
-      abortController.value = null
       saveChatHistory()
-      // 触发文生图（不阻塞 UI）
+      // 触发文生图（不阻塞 UI）— 发生在 abortController 置 null 之前，可传递 signal
       try {
         const { useImageGenTrigger } = await import('../composables/useImageGenTrigger.js')
         const trigger = useImageGenTrigger()
-        await trigger.processMessageImages(assistantMsg, settings)
+        await trigger.processMessageImages(assistantMsg, settings, abortController.value?.signal)
         saveChatHistory()
       } catch (e) {
         console.warn('ImageGen trigger failed:', e)
       }
+      abortController.value = null
     }
   }
 
