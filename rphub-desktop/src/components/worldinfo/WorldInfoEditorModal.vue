@@ -83,7 +83,7 @@ export default {
   emits: ['save', 'cancel'],
   setup(props, { emit }) {
     const form = reactive({
-      comment: '', content: '', key: [], position: 'global_note', scope: 'global',
+      id: null, comment: '', content: '', key: [], position: 'global_note', scope: 'global',
       depth: 4, order: 100, probability: 100, group: '',
       constant: false, useRegex: false, caseSensitive: false, enabled: true,
     })
@@ -91,7 +91,7 @@ export default {
 
     watch(() => props.entry, (e) => {
       Object.assign(form, {
-        comment: e.comment, content: e.content, key: [...(e.key || [])],
+        id: e.id, comment: e.comment, content: e.content, key: [...(e.key || [])],
         position: e.position, scope: e.scope, depth: e.depth, order: e.order,
         probability: e.probability, group: e.group, constant: e.constant,
         useRegex: e.useRegex, caseSensitive: e.caseSensitive, enabled: e.enabled,
