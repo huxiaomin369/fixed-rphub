@@ -44,6 +44,7 @@
       <!-- Model -->
       <div>
         <label class="block text-sm font-medium text-gray-700 mb-1.5">模型</label>
+        <!-- TODO: 文生图 provider 目前没有可用模型拉取接口，后续可接入 ModelSelectorModal -->
         <input v-model="settings.imageGenModel" type="text" placeholder="agnes-image-2.1-flash"
           class="w-full px-4 py-2.5 bg-gray-50 border border-gray-200/80 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-200 focus:border-primary-300 transition-all text-sm" />
       </div>

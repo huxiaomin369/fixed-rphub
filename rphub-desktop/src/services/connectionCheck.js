@@ -42,6 +42,35 @@ export async function checkApiConnection({ baseURL, apiKey, signal, timeoutMs = 
 }
 
 /**
+ * GET {baseURL}/v1/models 带 Bearer，10s 超时
+ * 返回 { status: 'connected' | 'error', models: [{ id, ... }], latency, error? }
+ * 与网页版 fetchModels 行为对齐（assets/js/app.js:4353）
+ */
+export async function fetchApiModels({ baseURL, apiKey, signal, timeoutMs = 10000 }) {
+  const start = Date.now()
+  const { signal: s, cancel } = withTimeout(signal, timeoutMs)
+  try {
+    const base = normalizeProviderUrl(baseURL)
+    const url = base.endsWith('/v1') ? `${base}/models` : `${base}/v1/models`
+    const res = await fetch(url, {
+      method: 'GET',
+      headers: { 'Authorization': `Bearer ${apiKey}` },
+      signal: s
+    })
+    cancel()
+    if (!res.ok) {
+      return { status: 'error', models: [], latency: Date.now() - start, error: `HTTP ${res.status}` }
+    }
+    const data = await res.json()
+    const models = Array.isArray(data?.data) ? data.data : []
+    return { status: 'connected', models, latency: Date.now() - start }
+  } catch (e) {
+    cancel()
+    return { status: 'error', models: [], latency: Date.now() - start, error: e.message }
+  }
+}
+
+/**
  * HEAD {baseURL}/images/generations，10s 超时
  */
 export async function checkImageGenConnection({ baseURL, apiKey, signal, timeoutMs = 10000 }) {

@@ -37,7 +37,7 @@ function emptyResponse(status) {
 test('scaffold runs', () => { assertEq(1 + 1, 2, 'sanity') })
 
 // ─── connectionCheck (Task 1.2) ─────────────────────
-import { checkApiConnection, checkImageGenConnection } from '../src/services/connectionCheck.js'
+import { checkApiConnection, checkImageGenConnection, fetchApiModels } from '../src/services/connectionCheck.js'
 
 test('checkApiConnection returns connected on 200', async () => {
   setFetchMock(async (url) => {
@@ -86,6 +86,58 @@ test('checkImageGenConnection returns error on 4xx/5xx', async () => {
   setFetchMock(async () => emptyResponse(500))
   const r = await checkImageGenConnection({ baseURL: 'https://ig.example.com/v1', apiKey: 'k' })
   assertEq(r.status, 'error', 'status on 500')
+  restoreFetch()
+})
+
+test('fetchApiModels returns models list on 200', async () => {
+  const models = [{ id: 'gpt-4o' }, { id: 'claude-3.5-sonnet' }, { id: 'agnes-2.0-flash' }]
+  let calledUrl = '', calledAuth = ''
+  setFetchMock(async (url, opts) => {
+    calledUrl = url
+    calledAuth = opts.headers?.Authorization || ''
+    return jsonResponse(200, { data: models })
+  })
+  const r = await fetchApiModels({ baseURL: 'https://api.example.com/v1', apiKey: 'sk-test' })
+  assertEq(r.status, 'connected', 'status')
+  assertEq(calledUrl, 'https://api.example.com/v1/models', 'url')
+  assertEq(calledAuth, 'Bearer sk-test', 'auth header')
+  assertEq(r.models.length, 3, 'models count')
+  assertEq(r.models[2].id, 'agnes-2.0-flash', 'last model id')
+  restoreFetch()
+})
+
+test('fetchApiModels appends /v1 when missing', async () => {
+  let calledUrl = ''
+  setFetchMock(async (url) => { calledUrl = url; return jsonResponse(200, { data: [] }) })
+  const r = await fetchApiModels({ baseURL: 'https://api.example.com', apiKey: 'k' })
+  assertEq(r.status, 'connected', 'status')
+  assertEq(calledUrl, 'https://api.example.com/v1/models', 'appended /v1')
+  assertEq(r.models.length, 0, 'empty models')
+  restoreFetch()
+})
+
+test('fetchApiModels returns error on 401', async () => {
+  setFetchMock(async () => jsonResponse(401, { error: 'unauthorized' }))
+  const r = await fetchApiModels({ baseURL: 'https://api.example.com/v1', apiKey: 'bad' })
+  assertEq(r.status, 'error', 'status on 401')
+  assertEq(r.models.length, 0, 'no models on error')
+  assert(r.error.includes('401'), 'error message includes 401')
+  restoreFetch()
+})
+
+test('fetchApiModels returns error on network failure', async () => {
+  setFetchMock(async () => { throw new Error('network down') })
+  const r = await fetchApiModels({ baseURL: 'https://api.example.com/v1', apiKey: 'k' })
+  assertEq(r.status, 'error', 'status on throw')
+  assertEq(r.models.length, 0, 'no models on throw')
+  restoreFetch()
+})
+
+test('fetchApiModels tolerates missing data field', async () => {
+  setFetchMock(async () => jsonResponse(200, {}))
+  const r = await fetchApiModels({ baseURL: 'https://api.example.com/v1', apiKey: 'k' })
+  assertEq(r.status, 'connected', 'status')
+  assertEq(r.models.length, 0, 'empty when data missing')
   restoreFetch()
 })
 
