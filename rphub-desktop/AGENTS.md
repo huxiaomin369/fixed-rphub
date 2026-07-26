@@ -84,6 +84,24 @@ For new features with non-trivial logic, follow this 4-layer pattern (establishe
 | `scripts/test-settingsServices.mjs` | Mock-fetch test script — 28 tests covering `apiProviders` / `connectionCheck` / `imageGen` / `userProfile`。无 npm script，直接 `node scripts/test-settingsServices.mjs` |
 | `scripts/test-chatInjection.mjs` | 9 tests 验证 `chat.js` system-prompt 注入行为（含 2 个 behavioral + 7 个 source-text regression）。`npm run test:chat` |
 | `scripts/extract-prompt.mjs` | One-shot re-sync of `SINGLE_PLAYER_SYSTEM_PROMPT` from web's `character/index.html` |
+| `src/services/builtinPresets.js` | 15 built-in preset seeds (破限, 人称, 文笔增强, 故事设计等) |
+| `src/services/builtinWorldInfo.js` | 1 built-in WI seed (自动生图) |
+| `src/services/builtinRegex.js` | 2 built-in regex seeds (Auto Replace `{{user}}`, NAI画图正则) |
+| `src/services/presetSchema.js` / `worldInfoSchema.js` / `regexSchema.js` | Pure normalizers — tolerate malformed input, never throw |
+| `src/services/seedDefaults.js` | Idempotent seed merge: `ensureSeedPresets` / `ensureSeedWorldInfo` / `ensureSeedRegex`; `isSeededEntry` helper (also `ensureSeedWorldInfoGlobal` / `ensureSeedRegexGlobal` for global-scope stores that live separately) |
+| `src/services/presetInjector.js` | `formatPresetsForSystemPrompt` (system presets → `[System Presets]` block with `{{placeholder}}` interpolation) + `buildPreludeMessages` + `getBreakLimitContent` |
+| `src/services/worldInfoScanner.js` | `scanWorldInfo` — constant / keyword / regex / AND-NOT matching, buckets into `systemNoteEntries` / `beforeCharEntries` / `afterCharEntries` by position |
+| `src/services/regexEngine.js` | `applyRegexScripts` — error-tolerant regex chain (placement / scope / minDepth / maxDepth), handles `/pattern/flags` + inline `(?s)(?i)(?m)` modifiers |
+| `src/services/scopeResolver.js` | `resolveScopedEntries` (character-scoped takes priority over global) + `mergeByScope` |
+| `src/composables/usePresets.js` | Vue composable wrapping presets store: `syncPersonPresets` (人称 toggle), `ensureSeeds`, `isPersonPreset`, `isBuiltin` |
+| `src/composables/useWorldInfo.js` | Vue composable wrapping WI store: `syncAutoImageGenWI`, `ensureSeeds` |
+| `src/composables/useRegexScripts.js` | Vue composable wrapping regex store: `syncUserNameReplacement`, `ensureSeeds` |
+| `src/composables/useSystemSeeds.js` | Orchestrator: `bootSeeds()` calls all three `ensureSeeds` + `syncPersonPresets` + `syncUserNameReplacement` on app boot |
+| `src/components/presets/PresetScopeTabs.vue` / `PresetListItem.vue` / `PresetEditorModal.vue` | Refactored preset UI: scope tabs, list item (badge + toggle), editor modal |
+| `src/components/worldinfo/WorldInfoScopeTabs.vue` / `WorldInfoListItem.vue` / `WorldInfoEditorModal.vue` | Refactored world info UI: scope tabs, list item, editor modal |
+| `src/components/regex/RegexScopeTabs.vue` / `RegexListItem.vue` / `RegexEditorModal.vue` | Refactored regex UI: scope tabs, list item, editor modal |
+| `src/components/common/ScopeBadge.vue` | Shared UI atom: renders `global` / `character` scope badge |
+| `src/components/common/SystemSeedBadge.vue` | Shared UI atom: renders 🔒 lock badge on built-in seeds (system seeds cannot be deleted; edits are preserved) |
 
 ## Tailwind v4
 
@@ -154,6 +172,22 @@ The settings page (`SettingsView.vue`) has 5 sections matching the web version's
 
 - **Spec + plan:** `docs/superpowers/specs/2026-07-26-settings-page-feature-parity-design.md`, `docs/superpowers/plans/2026-07-26-settings-page-feature-parity.md`
 - **Tag:** `v1-settings-page-parity`
+
+## Seed Defaults（v1-presets-wi-regex-parity）
+
+Three new `builtin*.js` modules ship 18 built-in seed entries that are automatically merged into the user's data on first boot and preserved across reloads:
+
+| Module | Entries | Details |
+|--------|---------|---------|
+| `builtinPresets.js` | 15 presets | 破限 (system lead + 2 prelude pairs), 第二人称 / 第三人称, 文笔增强, 故事设计, 分步思考, 决策树, 强制推进, 引导突破, 深度CoT, 伦理对齐, 短回复惩罚, 越狱攻击防护 |
+| `builtinWorldInfo.js` | 1 WI | 自动生图 (constant, always-active, system note entry) |
+| `builtinRegex.js` | 2 regex | Auto Replace `{{user}}` (replaces literal `{{user}}` with active profile name), NAI画图正则 (extracts NAI-style image gen tags for rendering) |
+
+**Seed merge pattern** (in `seedDefaults.js`): Each `ensure*` function receives the user's existing list and returns a new list with all built-in seeds guaranteed present. Matching is by unique name (presets/regex) or `comment` (world info). If the user has edited a seed entry, its `name`/`comment` identifies it as already seeded — the user's edits and `enabled` toggle are preserved. User-created entries are never removed.
+
+**Lock badge**: The `<SystemSeedBadge>` component renders a 🔒 icon on built-in seed entries. System seeds cannot be deleted — the delete action is hidden/disabled. Users can edit them freely, and edits persist across reloads since only the presence (not the content) is re-enforced by the merge.
+
+**Person preset auto-toggle** (in `usePresets.js#syncPersonPresets`): When the active profile's `person` field changes between 第二人称 / 第三人称, only the matching preset is enabled. This avoids the confusion of both person-presets being active simultaneously (which would conflict in the system prompt).
 
 ## Conventions
 
