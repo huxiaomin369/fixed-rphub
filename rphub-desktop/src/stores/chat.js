@@ -4,6 +4,14 @@ import localforage from 'localforage'
 import { apiRequest } from '../api'
 import { useSettingsStore } from './settings'
 import { buildUserInfoPrompt } from '../services/userProfile'
+import { usePresetsStore } from './presets'
+import { useWorldInfoStore } from './worldinfo'
+import { useRegexStore } from './regex'
+import { useCharacterStore } from './characters'
+import { formatPresetsForSystemPrompt, buildPreludeMessages, getBreakLimitContent } from '../services/presetInjector'
+import { scanWorldInfo } from '../services/worldInfoScanner'
+import { applyRegexScripts } from '../services/regexEngine'
+import { resolveScopedEntries } from '../services/scopeResolver'
 
 export const useChatStore = defineStore('chat', () => {
   const chatHistory = ref([])
@@ -211,15 +219,61 @@ export const useChatStore = defineStore('chat', () => {
   }
 
   function buildApiMessages(character, settings) {
-    const systemParts = [
-      `Name: ${character.name}`,
-      character.personality ? `Personality: ${character.personality}` : '',
-      character.description ? `Description: ${character.description}` : '',
-      character.mes_example ? `Example conversations:\n${character.mes_example}` : '',
-      settings.systemPrompt || ''
-    ].filter(Boolean)
+    const presetsStore = usePresetsStore()
+    const worldInfoStore = useWorldInfoStore()
+    const regexStore = useRegexStore()
+    const charactersStore = useCharacterStore()
 
-    // 注入当前用户人设
+    // Resolve scoped entries for all 3 features
+    const allPresets = resolveScopedEntries({
+      global: presetsStore.presets.filter(p => p.scope === 'global'),
+      character: presetsStore.presets.filter(p => p.scope === 'character'),
+    })
+    const allWorldInfo = resolveScopedEntries({
+      global: worldInfoStore.globalWorldInfo,
+      character: worldInfoStore.worldInfo.filter(e => e.scope === 'character'),
+    })
+    const allRegex = resolveScopedEntries({
+      global: regexStore.globalRegexScripts,
+      character: regexStore.regexScripts.filter(s => s.scope === 'character'),
+    })
+
+    // World info scan over recent messages
+    const scanResult = scanWorldInfo({
+      messages: chatHistory.value,
+      worldInfo: allWorldInfo,
+      settings: worldInfoStore.worldInfoSettings,
+    })
+
+    // Build system prompt parts in order
+    const systemParts = []
+
+    // 1. 破限 lead
+    const breakLimit = getBreakLimitContent(allPresets)
+    if (breakLimit) systemParts.push(breakLimit)
+
+    // 2. System Presets block (everything except 破限)
+    const presetBlock = formatPresetsForSystemPrompt(allPresets)
+    if (presetBlock) systemParts.push(presetBlock)
+
+    // 3. World info global_note entries
+    if (scanResult.systemNoteEntries.length > 0) {
+      systemParts.push(
+        '【世界书 / 全局知识】\n' +
+        scanResult.systemNoteEntries.map(e => e.content).join('\n\n')
+      )
+    }
+
+    // 4. User's custom systemPrompt
+    if (settings.systemPrompt) systemParts.push(settings.systemPrompt)
+
+    // 5. Character card
+    systemParts.push(`Name: ${character.name}`)
+    if (character.personality) systemParts.push(`Personality: ${character.personality}`)
+    if (character.description) systemParts.push(`Description: ${character.description}`)
+    if (character.mes_example) systemParts.push(`Example conversations:\n${character.mes_example}`)
+
+    // 6. User Info (existing)
     try {
       const settingsStore = useSettingsStore()
       const activeId = settingsStore.settings.activeProfileId
@@ -234,7 +288,13 @@ export const useChatStore = defineStore('chat', () => {
     const systemContent = systemParts.join('\n\n')
     const messages = [{ role: 'system', content: systemContent }]
 
-    // If first message is not in history and character has first_mes, add it
+    // 7. Prelude preset messages (after system, before greeting)
+    const prelude = buildPreludeMessages(allPresets)
+    for (const m of prelude) {
+      messages.push({ role: m.role, content: m.content })
+    }
+
+    // 8. If first message and character has first_mes, add greeting
     if (chatHistory.value.length === 0 && character.first_mes) {
       messages.push({
         role: 'assistant',
@@ -243,12 +303,36 @@ export const useChatStore = defineStore('chat', () => {
       })
     }
 
-    // Add chat history
-    for (const msg of chatHistory.value) {
+    // 9. Add chat history with regex transform on outgoing content
+    for (let i = 0; i < chatHistory.value.length; i++) {
+      const msg = chatHistory.value[i]
+      const depth = chatHistory.value.length - i
+      let content = msg.content
+      if (typeof content === 'string') {
+        content = applyRegexScripts({
+          text: content,
+          scripts: allRegex,
+          options: { applyTo: 'prompt', depth },
+        })
+      }
+      // For at_depth WI: insert a system note before this message
+      const depthEntries = scanResult.depthEntries.get(depth)
+      if (depthEntries && depthEntries.length > 0) {
+        const wiText = depthEntries.map(e => e.content).join('\n\n')
+        messages.push({ role: 'system', content: `【世界书 / 上下文注入】\n${wiText}` })
+      }
       messages.push({
         role: msg.role,
         name: msg.name || (msg.role === 'user' ? '我' : character.name),
-        content: msg.content
+        content
+      })
+    }
+
+    // 10. After-character WI: insert at end (rarely used; can be improved)
+    if (scanResult.afterCharEntries.length > 0) {
+      messages.push({
+        role: 'system',
+        content: '【世界书 / 角色后置】\n' + scanResult.afterCharEntries.map(e => e.content).join('\n\n'),
       })
     }
 
