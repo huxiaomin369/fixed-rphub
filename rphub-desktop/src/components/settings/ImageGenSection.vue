@@ -164,7 +164,7 @@ export default {
       const baseURL = isCustom.value
         ? (settings.imageGenProviderId === 'custom2' ? settings.customImageGenUrl2 : settings.customImageGenUrl)
         : (activeProvider.value?.apiUrl || '')
-      const r = await checkImageGenConnection({ baseURL, apiKey: settings.imageGenKey })
+      const r = await checkImageGenConnection({ baseURL })
       settingsStore.setImageGenStatus(r.status, r.latency)
       if (r.status === 'error') lastError.value = r.error || '检测失败'
     }

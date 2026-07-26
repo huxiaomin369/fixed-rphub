@@ -19,18 +19,18 @@ export default {
   computed: {
     dotClass() {
       return {
-        'bg-emerald-500': this.status === 'connected',
-        'bg-rose-500': this.status === 'error',
-        'bg-amber-400': this.status === 'checking',
-        'bg-gray-300': this.status === 'unknown'
+        connected: 'bg-emerald-500',
+        error: 'bg-rose-500',
+        checking: 'bg-amber-400',
+        unknown: 'bg-gray-300'
       }[this.status] || 'bg-gray-300'
     },
     textClass() {
       return {
-        'text-emerald-700': this.status === 'connected',
-        'text-rose-600': this.status === 'error',
-        'text-amber-600': this.status === 'checking',
-        'text-gray-500': this.status === 'unknown'
+        connected: 'text-emerald-700',
+        error: 'text-rose-600',
+        checking: 'text-amber-600',
+        unknown: 'text-gray-500'
       }[this.status] || 'text-gray-500'
     },
     label() {

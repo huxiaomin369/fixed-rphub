@@ -30,11 +30,12 @@
 </template>
 
 <script>
-import { computed } from 'vue'
+import { computed, onMounted } from 'vue'
 import { useUIStore } from './stores/ui'
 import Sidebar from './components/sidebar/Sidebar.vue'
 import ToastStack from './components/common/ToastStack.vue'
 import ConfirmModal from './components/common/ConfirmModal.vue'
+import { useSystemSeeds } from './composables/useSystemSeeds.js'
 
 import ChatView from './views/ChatView.vue'
 import CharacterView from './views/CharacterView.vue'
@@ -70,6 +71,13 @@ export default {
   setup() {
     const ui = useUIStore()
     const currentViewComponent = computed(() => viewMap[ui.currentView] || ChatView)
+
+    // Bootstrap seed data for presets, world info, regex scripts
+    const { bootSeeds } = useSystemSeeds()
+    onMounted(() => {
+      bootSeeds()
+    })
+
     return { ui, currentViewComponent }
   }
 }

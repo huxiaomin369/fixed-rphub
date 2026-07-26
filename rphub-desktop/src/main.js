@@ -36,6 +36,7 @@ window.__getAllDataForExport = async function () {
     globalWorldInfo: (await localforage.getItem('global_worldinfo')) || [],
     worldInfoSettings: (await localforage.getItem('worldinfo_settings')) || null,
     regex: (await localforage.getItem('regex')) || [],
+    globalRegex: (await localforage.getItem('global_regex')) || [],
     memories: (await localforage.getItem('memories')) || [],
     classicMemories: (await localforage.getItem('classic_memories')) || [],
     memorySettings: (await localforage.getItem('memory_settings')) || null
@@ -51,6 +52,7 @@ window.__restoreAllData = async function (data) {
     ['global_worldinfo', data.globalWorldInfo],
     ['worldinfo_settings', data.worldInfoSettings],
     ['regex', data.regex],
+    ['global_regex', data.globalRegex],
     ['memories', data.memories],
     ['classic_memories', data.classicMemories],
     ['memory_settings', data.memorySettings]

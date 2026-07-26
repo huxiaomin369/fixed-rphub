@@ -185,7 +185,7 @@ export default {
         } else {
           // Fallback for non-Electron: use localforage directly
           const allData = {}
-          const stores = ['settings', 'characters', 'presets', 'worldinfo', 'global_worldinfo', 'regex', 'memories', 'classic_memories', 'memory_settings', 'worldinfo_settings']
+          const stores = ['settings', 'characters', 'presets', 'worldinfo', 'global_worldinfo', 'regex', 'global_regex', 'memories', 'classic_memories', 'memory_settings', 'worldinfo_settings']
           for (const key of stores) {
             try {
               allData[key] = await localforage.getItem(key)

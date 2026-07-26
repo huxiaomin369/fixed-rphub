@@ -72,22 +72,23 @@ export async function fetchApiModels({ baseURL, apiKey, signal, timeoutMs = 1000
 
 /**
  * HEAD {baseURL}/images/generations，10s 超时
+ * 与网页版 checkImageGenStatus 行为对齐（assets/js/app.js:4439-4459）：
+ *   - 不发送 Authorization 头（网页版原本就没有）
+ *   - 不检查 response.ok：很多服务器对 HEAD /images/generations 返回 404/405
+ *     （端点不存在或不支持 HEAD），但服务本身是可达的；只要 fetch 不抛错就视为 connected。
+ *   - 仅在网络层失败（DNS / 连接被拒 / 超时）时返回 error。
  */
-export async function checkImageGenConnection({ baseURL, apiKey, signal, timeoutMs = 10000 }) {
+export async function checkImageGenConnection({ baseURL, signal, timeoutMs = 10000 }) {
   const start = Date.now()
   const { signal: s, cancel } = withTimeout(signal, timeoutMs)
   try {
     const url = `${normalizeProviderUrl(baseURL)}/images/generations`
-    const res = await fetch(url, {
+    await fetch(url, {
       method: 'HEAD',
-      headers: apiKey ? { 'Authorization': `Bearer ${apiKey}` } : {},
       signal: s
     })
     cancel()
-    if (res.ok) {
-      return { status: 'connected', latency: Date.now() - start }
-    }
-    return { status: 'error', latency: Date.now() - start, error: `HTTP ${res.status}` }
+    return { status: 'connected', latency: Date.now() - start }
   } catch (e) {
     cancel()
     return { status: 'error', latency: Date.now() - start, error: e.message }

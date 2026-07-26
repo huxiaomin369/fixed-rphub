@@ -28,12 +28,15 @@ export const useRegexStore = defineStore('regex', () => {
   async function loadRegex() {
     let combined = []
     try {
-      const data = await localforage.getItem('regex')
-      combined = (data || []).map(s => {
-        // Backfill missing scope — default to 'character'
-        const scope = s.scope === 'global' ? 'global' : 'character'
-        return normalizeRegexScript(s, scope)
-      })
+      // Load character-level scripts from 'regex' key
+      const charData = await localforage.getItem('regex')
+      const charScripts = (charData || []).map(s => normalizeRegexScript(s, 'character'))
+
+      // Load global scripts from 'global_regex' key
+      const globalData = await localforage.getItem('global_regex')
+      const globalScripts = (globalData || []).map(s => normalizeRegexScript(s, 'global'))
+
+      combined = [...charScripts, ...globalScripts]
     } catch (err) {
       console.error('Failed to load regex scripts:', err)
       combined = []
@@ -51,16 +54,21 @@ export const useRegexStore = defineStore('regex', () => {
 
   async function saveRegex() {
     try {
-      const combined = [...regexScripts.value, ...globalRegexScripts.value]
-      await localforage.setItem('regex', combined)
+      // Character-level scripts go to 'regex'; global to 'global_regex' (dual-key)
+      await localforage.setItem('regex', regexScripts.value)
+      await localforage.setItem('global_regex', globalRegexScripts.value)
     } catch (err) {
       console.error('Failed to save regex scripts:', err)
     }
   }
 
   async function saveGlobalRegex() {
-    // Deprecated — global entries are saved as part of saveRegex()
-    await saveRegex()
+    try {
+      // Global scripts go to the separate 'global_regex' key
+      await localforage.setItem('global_regex', globalRegexScripts.value)
+    } catch (err) {
+      console.error('Failed to save global regex scripts:', err)
+    }
   }
 
   function addRegexScript(script) {
