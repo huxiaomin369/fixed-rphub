@@ -59,7 +59,8 @@ export const useChatStore = defineStore('chat', () => {
       name: '我',
       content,
       isSelf: true,
-      timestamp: Date.now()
+      timestamp: Date.now(),
+      images: []
     }
     chatHistory.value.push(userMsg)
     userInput.value = ''
@@ -190,6 +191,15 @@ export const useChatStore = defineStore('chat', () => {
       isReceiving.value = false
       abortController.value = null
       saveChatHistory()
+      // 触发文生图（不阻塞 UI）
+      try {
+        const { useImageGenTrigger } = await import('../composables/useImageGenTrigger.js')
+        const trigger = useImageGenTrigger()
+        await trigger.processMessageImages(assistantMsg, settings)
+        saveChatHistory()
+      } catch (e) {
+        console.warn('ImageGen trigger failed:', e)
+      }
     }
   }
 

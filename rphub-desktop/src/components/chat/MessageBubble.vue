@@ -86,6 +86,17 @@
               v-html="renderMarkdownFn(mainContent || message.content, message.role)">
             </div>
 
+            <!-- Generated Images -->
+            <div v-if="message.images && message.images.length" class="mt-2 grid grid-cols-2 gap-2 max-w-md">
+              <a v-for="(img, i) in message.images" :key="i" :href="img.url" target="_blank" class="block">
+                <img :src="img.url" :alt="img.prompt" class="w-full h-auto rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-shadow" loading="lazy">
+              </a>
+            </div>
+            <div v-else-if="message.imageStatus === 'generating'" class="mt-2 text-xs text-gray-400 inline-flex items-center gap-1">
+              <span class="w-3 h-3 border-2 border-primary-300 border-t-primary-500 rounded-full animate-spin"></span>
+              正在生成图片…
+            </div>
+
             <!-- Sys Instruction Part -->
             <div v-if="sysContent"
               class="mt-2 p-3 bg-gradient-to-r from-gray-50/80 to-gray-100/50 rounded-xl border border-gray-200/60 shadow-sm flex flex-col gap-1.5">
