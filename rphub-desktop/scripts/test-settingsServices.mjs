@@ -3,15 +3,18 @@
 // Run with: node scripts/test-settingsServices.mjs
 
 let passed = 0, failed = 0
+const testPromises = []
 function test(name, fn) {
-  try {
-    fn()
-    console.log(`  PASS  ${name}`)
-    passed++
-  } catch (err) {
-    console.error(`  FAIL  ${name}\n    ${err.message}`)
-    failed++
-  }
+  testPromises.push((async () => {
+    try {
+      await fn()
+      console.log(`  PASS  ${name}`)
+      passed++
+    } catch (err) {
+      console.error(`  FAIL  ${name}\n    ${err.message}`)
+      failed++
+    }
+  })())
 }
 function assert(cond, msg) {
   if (!cond) throw new Error(msg || 'assertion failed')
@@ -87,7 +90,7 @@ test('checkImageGenConnection returns error on 4xx/5xx', async () => {
 })
 
 // ─── apiProviders (Task 1.1 sanity) ─────────────────
-import { API_PROVIDERS, IMAGE_GEN_PROVIDERS, resolveActiveApiProvider, resolveActiveImageGenProvider, isCustomApiProviderId } from '../src/services/apiProviders.js'
+import { API_PROVIDERS, IMAGE_GEN_PROVIDERS, resolveActiveApiProvider, isCustomApiProviderId } from '../src/services/apiProviders.js'
 
 test('API_PROVIDERS has 8 entries', () => {
   assertEq(API_PROVIDERS.length, 8, 'count')
@@ -126,7 +129,9 @@ test('isCustomApiProviderId handles custom/custom2', () => {
 import { fileURLToPath } from 'node:url'
 const isMain = process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]
 if (isMain) {
-  console.log(`\nResults: ${passed} passed, ${failed} failed`)
-  process.exit(failed > 0 ? 1 : 0)
+  Promise.allSettled(testPromises).then(() => {
+    console.log(`\nResults: ${passed} passed, ${failed} failed`)
+    process.exit(failed > 0 ? 1 : 0)
+  })
 }
 export { passed, failed }
