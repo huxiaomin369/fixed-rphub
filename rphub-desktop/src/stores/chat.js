@@ -2,6 +2,8 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import localforage from 'localforage'
 import { apiRequest } from '../api'
+import { useSettingsStore } from './settings'
+import { buildUserInfoPrompt } from '../services/userProfile'
 
 export const useChatStore = defineStore('chat', () => {
   const chatHistory = ref([])
@@ -192,14 +194,27 @@ export const useChatStore = defineStore('chat', () => {
   }
 
   function buildApiMessages(character, settings) {
-    const systemContent = [
+    const systemParts = [
       `Name: ${character.name}`,
       character.personality ? `Personality: ${character.personality}` : '',
       character.description ? `Description: ${character.description}` : '',
       character.mes_example ? `Example conversations:\n${character.mes_example}` : '',
       settings.systemPrompt || ''
-    ].filter(Boolean).join('\n\n')
+    ].filter(Boolean)
 
+    // 注入当前用户人设
+    try {
+      const settingsStore = useSettingsStore()
+      const activeId = settingsStore.settings.activeProfileId
+      const profile = settingsStore.settings.userProfiles.find(p => p.uuid === activeId)
+      if (profile && (profile.name || profile.description)) {
+        systemParts.push(buildUserInfoPrompt(profile))
+      }
+    } catch (e) {
+      // store 不可用时静默
+    }
+
+    const systemContent = systemParts.join('\n\n')
     const messages = [{ role: 'system', content: systemContent }]
 
     // If first message is not in history and character has first_mes, add it
