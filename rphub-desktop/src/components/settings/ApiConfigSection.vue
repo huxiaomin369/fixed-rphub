@@ -112,7 +112,7 @@
 <script>
 import { ref, computed } from 'vue'
 import { useSettingsStore } from '../../stores/settings'
-import { useUIStore } from '../../stores/ui'
+
 import { API_PROVIDERS, CUSTOM_PROVIDER_SLOTS, getApiProviderById, isCustomApiProviderId, getCustomApiUrlKey } from '../../services/apiProviders'
 import { checkApiConnection } from '../../services/connectionCheck'
 import ProviderDropdown from './ProviderDropdown.vue'
@@ -123,7 +123,6 @@ export default {
   components: { ProviderDropdown, ConnectionStatusBadge },
   setup() {
     const settingsStore = useSettingsStore()
-    const ui = useUIStore()
     const settings = settingsStore.settings
     const showKey = ref(false)
     const lastError = ref('')
