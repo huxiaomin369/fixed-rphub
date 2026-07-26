@@ -96,11 +96,12 @@
 </template>
 
 <script>
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { useSettingsStore } from '../../stores/settings'
 import { IMAGE_GEN_PROVIDERS, CUSTOM_PROVIDER_SLOTS as CUSTOM_IMAGE_GEN_SLOTS, getImageGenProviderById, isCustomImageGenProviderId, getCustomImageGenUrlKey } from '../../services/apiProviders'
 import { checkImageGenConnection } from '../../services/connectionCheck'
 import { IMAGE_STYLES, IMAGE_SIZES } from '../../services/imageGen'
+import { useWorldInfo } from '../../composables/useWorldInfo'
 import ProviderDropdown from './ProviderDropdown.vue'
 import ConnectionStatusBadge from './ConnectionStatusBadge.vue'
 
@@ -110,8 +111,16 @@ export default {
   setup() {
     const settingsStore = useSettingsStore()
     const settings = settingsStore.settings
+    const worldInfo = useWorldInfo()
     const showKey = ref(false)
     const lastError = ref('')
+
+    // Keep 自动生图 WI in sync with whether a key is configured
+    watch(() => !!settings.imageGenKey, (enabled) => {
+      worldInfo.syncAutoImageGenWI(enabled)
+      worldInfo.save()
+      worldInfo.saveGlobal()
+    }, { immediate: true })
 
     const activeProvider = computed(() => getImageGenProviderById(settings.imageGenProviderId))
     const activeBaseUrl = computed(() => activeProvider.value?.apiUrl || settings.customImageGenUrl || settings.customImageGenUrl2 || '')
