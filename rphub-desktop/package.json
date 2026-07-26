@@ -8,6 +8,7 @@
     "build": "electron-vite build",
     "preview": "electron-vite preview",
     "test:generator": "node scripts/test-characterGenerator.mjs",
+    "test:chat": "node scripts/test-chatInjection.mjs",
     "package": "electron-vite build && electron-builder",
     "package:win": "electron-vite build && electron-builder --win",
     "package:mac": "electron-vite build && electron-builder --mac",
