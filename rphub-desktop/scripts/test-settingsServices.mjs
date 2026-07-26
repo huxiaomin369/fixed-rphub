@@ -226,6 +226,85 @@ test('generateImages throws on non-200', async () => {
   restoreFetch()
 })
 
+// ─── userProfile (Task 1.4) ──────────────────────────
+import { createProfile, ensureUserProfiles, buildUserInfoPrompt, applyPersonToggle, migrateLegacyUser } from '../src/services/userProfile.js'
+
+test('createProfile returns defaults and applies partial overrides', () => {
+  // defaults
+  const def = createProfile()
+  assert(typeof def.uuid === 'string' && def.uuid.startsWith('p_'), 'uuid starts with p_')
+  assertEq(def.name, '默认人设', 'default name')
+  assertEq(def.description, '', 'default description')
+  assertEq(def.avatar, '', 'default avatar')
+  assertEq(def.person, 'second', 'default person')
+  // partial override
+  const ovr = createProfile({ name: '小明', person: 'third' })
+  assertEq(ovr.name, '小明', 'overridden name')
+  assertEq(ovr.person, 'third', 'overridden person')
+  assertEq(ovr.description, '', 'description still default')
+})
+
+test('ensureUserProfiles returns default array when empty', () => {
+  const result = ensureUserProfiles([])
+  assertEq(result.length, 1, 'one default profile')
+  assert(result[0].uuid && result[0].name === '默认人设', 'default profile content')
+})
+
+test('ensureUserProfiles returns input array as-is when non-empty', () => {
+  const input = [{ uuid: 'c1', name: 'existing' }]
+  const result = ensureUserProfiles(input)
+  assertEq(result, input, 'same reference returned')
+})
+
+test('buildUserInfoPrompt formats correctly and handles empty fields', () => {
+  const r1 = buildUserInfoPrompt({ name: '小明', description: '测试' })
+  assertEq(r1, '[User Info]\nName: 小明\nDescription: 测试', 'filled fields')
+  const r2 = buildUserInfoPrompt({})
+  assertEq(r2, '[User Info]\nName: \nDescription: ', 'empty fields')
+})
+
+test('applyPersonToggle enables second person and disables third when person=second', () => {
+  const presets = [
+    { name: '第二人称', enabled: false },
+    { name: '第三人称', enabled: true },
+    { name: '无关预设', enabled: true }
+  ]
+  const result = applyPersonToggle(presets, 'second')
+  // original unchanged
+  assertEq(presets[0].enabled, false, 'original not mutated')
+  // result correct
+  assertEq(result[0].enabled, true, '第二人称 enabled')
+  assertEq(result[1].enabled, false, '第三人称 disabled')
+  assertEq(result[2].enabled, true, '无关预设 unchanged')
+  assert(result !== presets, 'new array')
+})
+
+test('applyPersonToggle enables third person and disables second when person=third', () => {
+  const presets = [
+    { name: '第二人称', enabled: true },
+    { name: '第三人称', enabled: false }
+  ]
+  const result = applyPersonToggle(presets, 'third')
+  assertEq(result[0].enabled, false, '第二人称 disabled')
+  assertEq(result[1].enabled, true, '第三人称 enabled')
+  assert(result !== presets, 'new array')
+})
+
+test('migrateLegacyUser converts legacy user and handles undefined', () => {
+  const legacy = { name: '小明', description: '测试', avatar: 'abc.jpg', person: 'third' }
+  const r1 = migrateLegacyUser(legacy)
+  assertEq(r1.profiles.length, 1, 'one profile')
+  assert(typeof r1.profiles[0].uuid === 'string' && r1.profiles[0].uuid.startsWith('p_'), 'uuid')
+  assertEq(r1.profiles[0].name, '小明', 'name')
+  assertEq(r1.profiles[0].person, 'third', 'person')
+  assertEq(r1.activeProfileId, r1.profiles[0].uuid, 'activeProfileId matches')
+  // undefined
+  const r2 = migrateLegacyUser(undefined)
+  assertEq(r2.profiles.length, 1, 'one profile')
+  assertEq(r2.profiles[0].name, '默认人设', 'default name')
+  assertEq(r2.activeProfileId, r2.profiles[0].uuid, 'activeProfileId matches')
+})
+
 // ─── Runner ─────────────────────────────────────────
 import { fileURLToPath } from 'node:url'
 const isMain = process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]
