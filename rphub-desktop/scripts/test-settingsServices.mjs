@@ -1,0 +1,132 @@
+// rphub-desktop/scripts/test-settingsServices.mjs
+// Mock-fetch tests for settings-related services.
+// Run with: node scripts/test-settingsServices.mjs
+
+let passed = 0, failed = 0
+function test(name, fn) {
+  try {
+    fn()
+    console.log(`  PASS  ${name}`)
+    passed++
+  } catch (err) {
+    console.error(`  FAIL  ${name}\n    ${err.message}`)
+    failed++
+  }
+}
+function assert(cond, msg) {
+  if (!cond) throw new Error(msg || 'assertion failed')
+}
+function assertEq(actual, expected, msg) {
+  if (actual !== expected) {
+    throw new Error(`${msg || 'assertEq'}\n      expected: ${JSON.stringify(expected)}\n      actual:   ${JSON.stringify(actual)}`)
+  }
+}
+function setFetchMock(responder) { globalThis.fetch = async (url, opts) => responder(url, opts) }
+function restoreFetch() { delete globalThis.fetch }
+
+function jsonResponse(status, body) {
+  return { ok: status >= 200 && status < 300, status, json: async () => body, text: async () => JSON.stringify(body) }
+}
+function emptyResponse(status) {
+  return { ok: status >= 200 && status < 300, status, json: async () => null, text: async () => '' }
+}
+
+test('scaffold runs', () => { assertEq(1 + 1, 2, 'sanity') })
+
+// ─── connectionCheck (Task 1.2) ─────────────────────
+import { checkApiConnection, checkImageGenConnection } from '../src/services/connectionCheck.js'
+
+test('checkApiConnection returns connected on 200', async () => {
+  setFetchMock(async (url) => {
+    assertEq(url, 'https://api.example.com/v1/models', 'url should append /v1/models')
+    return jsonResponse(200, { data: [] })
+  })
+  const r = await checkApiConnection({ baseURL: 'https://api.example.com/', apiKey: 'sk-test' })
+  assertEq(r.status, 'connected', 'status')
+  assert(typeof r.latency === 'number' && r.latency >= 0, 'latency is number')
+  restoreFetch()
+})
+
+test('checkApiConnection does not double-append /v1', async () => {
+  let called = ''
+  setFetchMock(async (url) => { called = url; return jsonResponse(200, {}) })
+  await checkApiConnection({ baseURL: 'https://api.example.com/v1/', apiKey: 'k' })
+  assertEq(called, 'https://api.example.com/v1/models', 'no double /v1')
+  restoreFetch()
+})
+
+test('checkApiConnection returns error on 401', async () => {
+  setFetchMock(async () => jsonResponse(401, { error: 'unauthorized' }))
+  const r = await checkApiConnection({ baseURL: 'https://api.example.com/v1', apiKey: 'bad' })
+  assertEq(r.status, 'error', 'status on 401')
+  restoreFetch()
+})
+
+test('checkApiConnection returns error on network failure', async () => {
+  setFetchMock(async () => { throw new Error('network down') })
+  const r = await checkApiConnection({ baseURL: 'https://api.example.com/v1', apiKey: 'k' })
+  assertEq(r.status, 'error', 'status on throw')
+  restoreFetch()
+})
+
+test('checkImageGenConnection uses HEAD on /images/generations', async () => {
+  let calledMethod = '', calledUrl = ''
+  setFetchMock(async (url, opts) => { calledMethod = opts.method; calledUrl = url; return emptyResponse(200) })
+  const r = await checkImageGenConnection({ baseURL: 'https://ig.example.com/v1', apiKey: 'k' })
+  assertEq(calledMethod, 'HEAD', 'HEAD method')
+  assertEq(calledUrl, 'https://ig.example.com/v1/images/generations', 'url')
+  assertEq(r.status, 'connected', 'status')
+  restoreFetch()
+})
+
+test('checkImageGenConnection returns error on 4xx/5xx', async () => {
+  setFetchMock(async () => emptyResponse(500))
+  const r = await checkImageGenConnection({ baseURL: 'https://ig.example.com/v1', apiKey: 'k' })
+  assertEq(r.status, 'error', 'status on 500')
+  restoreFetch()
+})
+
+// ─── apiProviders (Task 1.1 sanity) ─────────────────
+import { API_PROVIDERS, IMAGE_GEN_PROVIDERS, resolveActiveApiProvider, resolveActiveImageGenProvider, isCustomApiProviderId } from '../src/services/apiProviders.js'
+
+test('API_PROVIDERS has 8 entries', () => {
+  assertEq(API_PROVIDERS.length, 8, 'count')
+})
+
+test('IMAGE_GEN_PROVIDERS has 2 entries with defaultModel', () => {
+  assertEq(IMAGE_GEN_PROVIDERS.length, 2, 'count')
+  assert(IMAGE_GEN_PROVIDERS[0].defaultModel, 'first has defaultModel')
+  assertEq(IMAGE_GEN_PROVIDERS[1].fixedSize, '1760x2368', 'sensenova fixedSize')
+})
+
+test('resolveActiveApiProvider returns builtin for agnes', () => {
+  const s = { apiProviderId: 'agnes', apiProviderKeys: { agnes: 'sk-x' }, apiKey: 'sk-x' }
+  const r = resolveActiveApiProvider(s)
+  assertEq(r.id, 'agnes')
+  assertEq(r.apiKey, 'sk-x')
+  assertEq(r.isCustom, false)
+  assertEq(r.apiUrl, 'https://apihub.agnes-ai.com/v1')
+})
+
+test('resolveActiveApiProvider returns custom for custom2', () => {
+  const s = { apiProviderId: 'custom2', apiProviderKeys: { custom2: 'k' }, customApiUrl2: 'https://my.api/v1' }
+  const r = resolveActiveApiProvider(s)
+  assertEq(r.id, 'custom2')
+  assertEq(r.apiUrl, 'https://my.api/v1')
+  assertEq(r.isCustom, true)
+})
+
+test('isCustomApiProviderId handles custom/custom2', () => {
+  assertEq(isCustomApiProviderId('custom'), true)
+  assertEq(isCustomApiProviderId('custom2'), true)
+  assertEq(isCustomApiProviderId('agnes'), false)
+})
+
+// ─── Runner ─────────────────────────────────────────
+import { fileURLToPath } from 'node:url'
+const isMain = process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]
+if (isMain) {
+  console.log(`\nResults: ${passed} passed, ${failed} failed`)
+  process.exit(failed > 0 ? 1 : 0)
+}
+export { passed, failed }
