@@ -125,6 +125,102 @@ test('isCustomApiProviderId handles custom/custom2', () => {
   assertEq(isCustomApiProviderId('agnes'), false)
 })
 
+// ─── imageGen (Task 1.3) ─────────────────────────
+import { IMAGE_STYLES, IMAGE_SIZES, sizeToDims, styleToArtists, generateImages } from '../src/services/imageGen.js'
+
+test('IMAGE_STYLES has 7 entries with correct labels', () => {
+  assertEq(IMAGE_STYLES.length, 7, 'count')
+  assertEq(IMAGE_STYLES[0].value, 'vertical')
+  assertEq(IMAGE_STYLES[0].label, '韩漫小清新风')
+  assertEq(IMAGE_STYLES[6].value, 'custom')
+  assertEq(IMAGE_STYLES[6].label, '自定义')
+})
+
+test('IMAGE_SIZES has 9 entries with correct labels', () => {
+  assertEq(IMAGE_SIZES.length, 9, 'count')
+  assertEq(IMAGE_SIZES[0].value, '竖图')
+  assertEq(IMAGE_SIZES[0].label, '竖图(736x1312)')
+  assertEq(IMAGE_SIZES[8].value, '4K方图')
+  assertEq(IMAGE_SIZES[8].label, '4K方图(3456x2592)')
+})
+
+test('sizeToDims returns correct dims for known sizes', () => {
+  assertEq(sizeToDims('竖图'), '736x1312')
+  assertEq(sizeToDims('横图'), '1312x736')
+  assertEq(sizeToDims('方图'), '1152x864')
+  assertEq(sizeToDims('2K竖图'), '1472x2624')
+  assertEq(sizeToDims('4K方图'), '3456x2592')
+})
+
+test('sizeToDims returns default for unknown or undefined', () => {
+  assertEq(sizeToDims('unknown'), '736x1312')
+  assertEq(sizeToDims(''), '736x1312')
+  assertEq(sizeToDims(undefined), '736x1312')
+})
+
+test('styleToArtists returns artist string for known styles', () => {
+  const comicDoujin = styleToArtists('comicDoujin')
+  assert(comicDoujin.length > 0, 'comicDoujin should be non-empty')
+  assert(comicDoujin.includes('masterpiece'), 'comicDoujin contains masterpiece')
+
+  const anime = styleToArtists('anime')
+  assert(anime.includes('asanagi'), 'anime contains asanagi')
+
+  const r18 = styleToArtists('r18')
+  assert(r18.includes('misaka'), 'r18 contains misaka')
+})
+
+test('styleToArtists returns custom or empty for unknown', () => {
+  assertEq(styleToArtists('custom', 'my artist'), 'my artist')
+  assertEq(styleToArtists('custom', ''), '')
+  assertEq(styleToArtists('custom', '  trimmed  '), 'trimmed')
+  assertEq(styleToArtists('nonexistent'), '')
+})
+
+test('generateImages POSTs and returns dataURLs', async () => {
+  let calledUrl = ''
+  let calledHeaders = {}
+  setFetchMock(async (url, opts) => {
+    calledUrl = url
+    calledHeaders = opts.headers
+    const body = JSON.parse(opts.body)
+    assertEq(opts.method, 'POST', 'POST method')
+    assertEq(body.model, 'test-model')
+    assertEq(body.n, 1)
+    assertEq(body.response_format, 'b64_json')
+    assertEq(body.size, '竖图')
+    assert(body.prompt, 'has prompt')
+    return jsonResponse(200, { data: [{ b64_json: 'abc123' }] })
+  })
+  const result = await generateImages({
+    baseURL: 'https://api.example.com/v1',
+    apiKey: 'sk-test',
+    model: 'test-model',
+    prompt: 'a cat',
+    size: '竖图',
+    n: 1
+  })
+  assertEq(result.length, 1, '1 image returned')
+  assert(result[0].url.startsWith('data:image/png;base64,'), 'dataURL prefix')
+  assertEq(result[0].prompt, 'a cat')
+  assert(calledUrl.endsWith('/images/generations'), 'url ends with /images/generations')
+  assertEq(calledHeaders['Authorization'], 'Bearer sk-test', 'auth header')
+  restoreFetch()
+})
+
+test('generateImages throws on non-200', async () => {
+  setFetchMock(async () => jsonResponse(400, { error: 'bad request' }))
+  let threw = false
+  try {
+    await generateImages({ baseURL: 'https://api.example.com/v1', apiKey: 'k', model: 'm', prompt: 'p', size: '竖图' })
+  } catch (e) {
+    threw = true
+    assert(e.message.includes('ImageGen 400'), 'error message includes status')
+  }
+  assert(threw, 'should throw on 4xx')
+  restoreFetch()
+})
+
 // ─── Runner ─────────────────────────────────────────
 import { fileURLToPath } from 'node:url'
 const isMain = process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]
