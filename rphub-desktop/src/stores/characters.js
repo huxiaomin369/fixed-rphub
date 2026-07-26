@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import localforage from 'localforage'
+import { useSystemSeeds } from '../composables/useSystemSeeds.js'
 
 export const useCharacterStore = defineStore('characters', () => {
   const characterList = ref([])
@@ -22,6 +23,9 @@ export const useCharacterStore = defineStore('characters', () => {
     const idx = characterList.value.findIndex(c => c.id === card.id || c.uuid === card.uuid)
     if (idx >= 0) {
       setCurrentCharacter(idx)
+      // Re-sync seeds (idempotent — keyed by name) so dynamic fields like {{user}}
+      // replacement and the person toggle reflect the new character context
+      useSystemSeeds().bootSeeds()
     }
   }
 

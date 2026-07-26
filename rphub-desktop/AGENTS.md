@@ -16,12 +16,21 @@
 ```bash
 npm run dev                # Start Electron dev mode (Vite HMR + Electron window)
 npm run build              # Build for production
-npm run test:generator     # Mock-fetch tests for the AI character generator service (27 tests)
-npm run test:chat          # Source-text + behavioral tests for chat.js system-prompt injection (9 tests)
-node scripts/test-settingsServices.mjs   # Mock-fetch tests for settings services (28 tests, no npm script yet)
+
+# Test scripts (all are pure-Node mock-fetch; no test framework)
+npm run test:generator           # 27 tests — characterGenerator.js
+npm run test:chat                # 16 tests — chat.js system-prompt injection (9 original + 7 new for preset/WI/regex integration)
+node scripts/test-settingsServices.mjs   # 35 tests — apiProviders / connectionCheck / imageGen / userProfile
+npm run test:seeds               # 39 tests — builtinPresets/WorldInfo/Regex
+npm run test:seedDefaults        # 24 tests — seedDefaults.js (idempotent merge)
+npm run test:presetInjector      # 18 tests — presetInjector.js (format / prelude / interpolate)
+npm run test:worldInfoScanner    # 13 tests — worldInfoScanner.js (constant/keyword/regex/bucketing)
+npm run test:regexEngine         # 22 tests — regexEngine.js (placement / scope / depth / error tolerance)
+npm run test:scopeResolver       #  6 tests — scopeResolver.js
+npm run test:all-features        # Aggregator: runs all 9 suites (200 tests, must all pass before commit)
 ```
 
-- No linter, no typecheck, no test framework. All three test scripts are **manual mock-fetch scripts** under `scripts/`. They cover service-layer logic only; verify UI / Vue components by hand via `npm run dev`.
+- **200/200 tests pass** across 9 mock-fetch scripts. No linter, no typecheck, no test framework.
 - `src/` is the renderer source. `electron/` is the main process source.
 - Tailwind CSS v4 via Vite plugin (`@tailwindcss/vite`). **Every CSS file that uses utility classes must start with `@import "tailwindcss";`** — see "Tailwind v4" below.
 
@@ -60,9 +69,9 @@ For new features with non-trivial logic, follow this 4-layer pattern (establishe
 | `src/composables/useGenerator.js` | Vue composable wrapping `runNewGeneration` with reactive state |
 | `src/composables/useUserProfile.js` | Vue composable wrapping `settings.userProfiles` + `switchProfile` / `setPerson` |
 | `src/composables/useImageGenTrigger.js` | Vue composable 解析 AI 回复中的 `<auto_image_gen>...</auto_image_gen>` 标签并调用 `imageGen.generateImages`，串行生成，错误时设 `message.imageStatus = 'error'` 并 toast |
-| `src/stores/*.js` | 8 Pinia stores (chat, characters, settings, ui, memory, presets, worldinfo, regex) |
+| `src/stores/*.js` | 8 Pinia stores (chat, characters, settings, ui, memory, **presets**, **worldinfo**, **regex**)。presets/worldinfo/regex 三个 store 在 v1-presets-wi-regex-parity 中扩展：dual-array（`worldInfo` + `globalWorldInfo` / `regexScripts` + `globalRegexScripts`）、scope 字段（`'global'\|'character'`）、`loadXxx` 时 backfill legacy `scope='global'` + 调用 `ensureSeedXxx`、CRUD 时 `systemSeed===true` 守卫禁止删除内置条目 |
 | `src/stores/settings.js` | 扩展后含 6 个新字段：`userProfiles: []` / `activeProfileId` / `apiStatus` / `apiLatency` / `imageGenStatus` / `imageGenLatency`；7 个新 actions：`setUserProfiles` / `addUserProfile` / `deleteUserProfile` / `setActiveProfile` / `updateActiveProfile` / `setApiStatus` / `setImageGenStatus`；`loadSettings` 内置幂等旧数据迁移（apiKey → apiProviderKeys / imageGenKey → imageGenProviderKeys / user → userProfiles，迁移后 `delete settings.user`）；300ms 防抖的 `watch(settings, pushToMainProcess, { deep: true })` |
-| `src/stores/chat.js` | 消息加 `images: []` 字段；`buildApiMessages` 注入当前 active profile 的 `[User Info]` 段到 system prompt；`generateResponse` finally 块动态 `import('../composables/useImageGenTrigger.js')` 触发文生图，并带 `wasAborted` 守卫避免用户取消后仍生成图片 |
+| `src/stores/chat.js` | 消息加 `images: []` 字段；`buildApiMessages` 10 步组装：(1) 破限 lead (2) System Presets 块 (3) WI `global_note` (4) `settings.systemPrompt` (5) 角色卡 (6) `[User Info]` 段 (7) prelude preset 消息 (8) 首条 greet (9) 历史消息 + per-message regex 转换 + per-depth WI 注入 (10) after-character WI；COT 预设的 `{{memoryContext}}` 从 `useMemoryStore().memories` 插值；`generateResponse` finally 块动态 `import('../composables/useImageGenTrigger.js')` 触发文生图，并带 `wasAborted` 守卫避免用户取消后仍生成图片 |
 | `src/views/*.vue` | 12 page-level Vue components (Chat, Character, Memory, Tool, Usage, Square, Generator, UITemplates, Presets, WorldInfo, Regex, Settings) |
 | `src/views/SettingsView.vue` | 装配 5 个 section：`<UserProfileSection />` / `<ApiConfigSection />` / `<ImageGenSection />` + 原有 UI 偏好 + 数据管理 |
 | `src/components/` | Shared components: `chat/`, `common/`, `sidebar/`, `characters/`, `generator/`, `settings/` |
@@ -71,7 +80,7 @@ For new features with non-trivial logic, follow this 4-layer pattern (establishe
 | `src/components/settings/UserProfileSection.vue` | 多 profile 管理 UI：头像条 + 当前 profile 编辑（name/description/avatar/person），切换人称自动联动 presets |
 | `src/components/settings/ApiConfigSection.vue` | API provider + URL/Key/模型 + 测试连接（`ProviderDropdown` + `ConnectionStatusBadge` 复用） |
 | `src/components/settings/ImageGenSection.vue` | 文生图 provider + 风格/尺寸/数量 + 测试连接（`ProviderDropdown` + `ConnectionStatusBadge` 复用） |
-| `src/components/chat/MessageBubble.vue` | 渲染消息末尾 `images` 网格（2 列 + base64 dataURL），`imageStatus === 'generating'` 时显示 spinner |
+| `src/components/chat/MessageBubble.vue` | 渲染消息末尾 `images` 网格（2 列 + base64 dataURL），`imageStatus === 'generating'` 时显示 spinner；通过 `useRegexScripts` + `applyRegexScripts({ applyTo: 'display' })` 在渲染时执行 display 通道 regex（替换 `{{user}}`、剥离 NAI `@image@` 标签等） |
 | `src/components/sidebar/Sidebar.vue` | 左下角 user mini：从 `useSettingsStore` 读 active profile，实时显示头像/名称（绑定到 reactive `computed`） |
 | `src/components/common/ConfirmModal.vue` | Global confirm dialog driven by `ui.confirmDialog` state |
 | `src/api/index.js` | `fetch()` API wrapper, supports SSE streaming via `ReadableStreamDefaultReader` |
@@ -175,19 +184,88 @@ The settings page (`SettingsView.vue`) has 5 sections matching the web version's
 
 ## Seed Defaults（v1-presets-wi-regex-parity）
 
-Three new `builtin*.js` modules ship 18 built-in seed entries that are automatically merged into the user's data on first boot and preserved across reloads:
+Three new `builtin*.js` modules ship **18 built-in seed entries** (15 presets + 1 WI + 2 regex) that are automatically merged into the user's data on first boot and preserved across reloads. The work brings the desktop version to feature parity with the web version's behavior.
 
-| Module | Entries | Details |
-|--------|---------|---------|
-| `builtinPresets.js` | 15 presets | 破限 (system lead + 2 prelude pairs), 第二人称 / 第三人称, 文笔增强, 故事设计, 分步思考, 决策树, 强制推进, 引导突破, 深度CoT, 伦理对齐, 短回复惩罚, 越狱攻击防护 |
-| `builtinWorldInfo.js` | 1 WI | 自动生图 (constant, always-active, system note entry) |
-| `builtinRegex.js` | 2 regex | Auto Replace `{{user}}` (replaces literal `{{user}}` with active profile name), NAI画图正则 (extracts NAI-style image gen tags for rendering) |
+### Seeded items (exact list)
 
-**Seed merge pattern** (in `seedDefaults.js`): Each `ensure*` function receives the user's existing list and returns a new list with all built-in seeds guaranteed present. Matching is by unique name (presets/regex) or `comment` (world info). If the user has edited a seed entry, its `name`/`comment` identifies it as already seeded — the user's edits and `enabled` toggle are preserved. User-created entries are never removed.
+| # | Name | Type | `systemSeed` | `enabled` default | `scope` |
+|---|---|---|---|---|---|
+| 1 | 破限 | preset (system, lead) | ✅ | true | global |
+| 2 | 破限预注入 · User 1 | preset (user, prelude) | ✅ | true | global |
+| 3 | 破限预注入 · AI 1 | preset (assistant, prelude) | ✅ | true | global |
+| 4 | 破限预注入 · User 2 | preset (user, prelude) | ✅ | true | global |
+| 5 | 破限预注入 · AI 2 | preset (assistant, prelude) | ✅ | true | global |
+| 6 | 色情内容增强 | preset (system) | ✅ | true | global |
+| 7 | 防抢话 | preset (system) | ✅ | true | global |
+| 8 | 防神化 | preset (system) | ✅ | true | global |
+| 9 | 防重复 | preset (system) | ✅ | true | global |
+| 10 | 人格内核 | preset (system) | ✅ | true | global |
+| 11 | 文风（抗八股） | preset (system) | ✅ | true | global |
+| 12 | 第二人称 | preset (system) | ✅ | false (toggled by `user.person`) | global |
+| 13 | 第三人称 | preset (system) | ✅ | false (toggled by `user.person`) | global |
+| 14 | 禁止规则 | preset (system) | ✅ | true | global |
+| 15 | COT | preset (system, with `{{memoryContext}}` placeholder) | ✅ | true | global |
+| 16 | 自动生图 | world info (constant, `at_depth: 4`) | ✅ | false (gated by imageGen) | global |
+| 17 | Auto Replace `{{user}}` | regex (`{{user}}` → active profile name) | ✅ | true | global |
+| 18 | NAI画图正则 | regex (strips `@image@…@imageEnd@` from display) | ✅ | false (opt-in) | global |
 
-**Lock badge**: The `<SystemSeedBadge>` component renders a 🔒 icon on built-in seed entries. System seeds cannot be deleted — the delete action is hidden/disabled. Users can edit them freely, and edits persist across reloads since only the presence (not the content) is re-enforced by the merge.
+### Seed merge pattern (`src/services/seedDefaults.js`)
 
-**Person preset auto-toggle** (in `usePresets.js#syncPersonPresets`): When the active profile's `person` field changes between 第二人称 / 第三人称, only the matching preset is enabled. This avoids the confusion of both person-presets being active simultaneously (which would conflict in the system prompt).
+Each `ensure*` function receives the user's existing list and returns a new list with all built-in seeds guaranteed present. Matching is by unique `name` (presets/regex) or `comment` (world info). Three rules:
+1. **Never delete user entries** — only add or skip-if-exists.
+2. **Never overwrite user content** — even if the seed file is updated later, the user's local copy wins.
+3. **Preserve user's `enabled` toggle** — disabled built-ins stay disabled.
+
+### Lock badge (`src/components/common/SystemSeedBadge.vue`)
+
+Renders a 🔒 icon on built-in seed entries. System seeds **cannot be deleted** — the delete button is disabled with a tooltip. Users can edit their **content** freely, and edits persist across reloads since only the presence (not the content) is re-enforced by the merge.
+
+### Scope model
+
+- Presets: always `scope: 'global'` (no character binding in web or desktop; web parity).
+- World Info and Regex: each entry has `scope: 'global' | 'character'`. Stores persist a **dual array** (`worldInfo` + `globalWorldInfo`, `regexScripts` + `globalRegexScripts`) and a **dual key** (`'worldinfo'` + `'global_worldinfo'`, `'regex'` + `'global_regex'`) — the global-only mirror is used for export stripping. `scopeResolver.js` merges character-scoped first, then global. Legacy entries missing the `scope` field are backfilled to `'global'` on first load (idempotent migration).
+
+Default scope on create: `'character'` if a character is currently loaded, else `'global'` (for WI/Regex). Presets are always `'global'`.
+
+### Person preset auto-toggle (`usePresets.js#syncPersonPresets`)
+
+When the active profile's `person` field changes between `第二人称` / `第三人称`, only the matching preset is enabled. Avoids the conflict of both person-presets being active simultaneously. Wired into `useUserProfile.setPerson()` (Task 4.1).
+
+### Auto image-gen → 自动生图 WI sync
+
+When the user has a non-empty `imageGenProviderKeys[imageGenProviderId]` (i.e., imageGen is configured), `useSystemSeeds.bootSeeds()` calls `useWorldInfo.syncAutoImageGenWI(true)` so the `自动生图` WI is enabled. Additionally, `ImageGenSection.vue` watches `settings.imageGenKey` and calls the same sync on toggle (Task 4.2). The pattern follows the web's `setAutoImageGen` (app.js line 12133).
+
+### `{{user}}` → username sync (`useRegexScripts.js`)
+
+Watches `useSettingsStore().activeProfile.name` (deep) and updates the `Auto Replace {{user}}` script's `replacement` field whenever the active profile name changes. Mirrors web lines 2451–2457.
+
+### Character switch re-sync (`useSystemSeeds.bootSeeds`)
+
+Called from `App.vue` `onMounted()` and from `stores/characters.js#selectCharacter` (Task 4.3). `bootSeeds()` is idempotent — running it on every character switch just re-syncs the dynamic fields (person, `{{user}}`, 自动生图). It also persists (`presets.save()`, `worldInfo.save()`/`saveGlobal()`, `regex.save()`/`saveGlobal()`).
+
+### Chat pipeline integration (`src/stores/chat.js#buildApiMessages`)
+
+Extended additively. New assembly order:
+1. 破限 lead (via `getBreakLimitContent`, COT placeholder interpolated from `useMemoryStore.memories`)
+2. System Presets block (via `formatPresetsForSystemPrompt`, excludes 破限, interpolates `{{memoryContext}}`)
+3. World info `global_note` entries (from `scanWorldInfo`)
+4. User's `settings.systemPrompt`
+5. Character card (name + personality + description + mes_example)
+6. User Info block (existing)
+7. **Prelude messages** (User 1/AI 1/User 2/AI 2 from prelude presets) — inserted as separate chat messages after system, before greeting
+8. Character greeting (first_mes if first message)
+9. Chat history with **per-message regex transform** (`applyTo: 'prompt'`, depth-aware) and **per-depth WI injection** (`scanWorldInfo.depthEntries.get(depth)`)
+10. After-character WI (rarely used)
+
+Display side: `src/components/chat/MessageBubble.vue` applies `applyRegexScripts` with `applyTo: 'display'` so `{{user}}` is replaced in the rendered markdown.
+
+### Critical fix history
+
+Two issues were caught by the final whole-branch review and fixed:
+- `2d603d5` — COT `{{memoryContext}}` interpolation wired (passes memory store context to preset formatter); boot-time imageGen sync uncommented in `useSystemSeeds` to use `imageGenProviderId`+`imageGenProviderKeys` lookup.
+
+- **Spec + plan:** `docs/superpowers/specs/2026-07-26-presets-worldinfo-regex-parity-design.md`, `docs/superpowers/plans/2026-07-26-presets-worldinfo-regex-parity.md`
+- **Tag (target):** `v1-presets-wi-regex-parity`
 
 ## Conventions
 

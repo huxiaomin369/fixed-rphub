@@ -82,10 +82,26 @@ test('checkImageGenConnection uses HEAD on /images/generations', async () => {
   restoreFetch()
 })
 
-test('checkImageGenConnection returns error on 4xx/5xx', async () => {
+test('checkImageGenConnection returns connected on 404 (web parity: no res.ok gate)', async () => {
+  // 网页版 checkImageGenStatus（assets/js/app.js:4439-4459）不检查 response.ok，
+  // 任何可达的服务器（包含 404/405）都视为 connected。仅 fetch 抛错时才返回 error。
+  setFetchMock(async () => emptyResponse(404))
+  const r = await checkImageGenConnection({ baseURL: 'https://ig.example.com/v1', apiKey: 'k' })
+  assertEq(r.status, 'connected', 'status on 404 (web parity)')
+  restoreFetch()
+})
+
+test('checkImageGenConnection returns connected on 405', async () => {
+  setFetchMock(async () => emptyResponse(405))
+  const r = await checkImageGenConnection({ baseURL: 'https://ig.example.com/v1', apiKey: 'k' })
+  assertEq(r.status, 'connected', 'status on 405 (HEAD may be unsupported)')
+  restoreFetch()
+})
+
+test('checkImageGenConnection returns connected on 500 (web parity)', async () => {
   setFetchMock(async () => emptyResponse(500))
   const r = await checkImageGenConnection({ baseURL: 'https://ig.example.com/v1', apiKey: 'k' })
-  assertEq(r.status, 'error', 'status on 500')
+  assertEq(r.status, 'connected', 'status on 500 (any reachable response counts as connected)')
   restoreFetch()
 })
 
