@@ -81,9 +81,9 @@
               </div>
             </div>
 
-            <!-- Main Content -->
-            <div v-if="mainContent || message.content" class="markdown-body"
-              v-html="renderMarkdownFn(mainContent || message.content, message.role)">
+            <!-- Main Content (regex-transformed display) -->
+            <div v-if="displayContent" class="markdown-body"
+              v-html="renderMarkdownFn(displayContent, message.role)">
             </div>
 
             <!-- Generated Images -->
@@ -163,6 +163,9 @@
 
 <script>
 import { ref, computed } from 'vue'
+import { useRegexStore } from '../../stores/regex.js'
+import { applyRegexScripts } from '../../services/regexEngine.js'
+import { resolveScopedEntries } from '../../services/scopeResolver.js'
 
 export default {
   name: 'MessageBubble',
@@ -200,6 +203,21 @@ export default {
       return props.message.sys || ''
     })
 
+    // Apply regex scripts to display content
+    const regexStore = useRegexStore()
+    const allRegex = computed(() => resolveScopedEntries({
+      global: regexStore.globalRegexScripts,
+      character: regexStore.regexScripts.filter(s => s.scope === 'character'),
+    }))
+
+    const displayContent = computed(() => {
+      return applyRegexScripts({
+        text: mainContent.value,
+        scripts: allRegex.value,
+        options: { applyTo: 'display' },
+      })
+    })
+
     function startEdit() {
       editContent.value = props.message.content || ''
       props.message.isEditing_Message = true
@@ -226,6 +244,7 @@ export default {
       displayName,
       cotContent,
       mainContent,
+      displayContent,
       sysContent,
       startEdit,
       saveEdit,
