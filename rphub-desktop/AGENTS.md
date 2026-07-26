@@ -16,10 +16,12 @@
 ```bash
 npm run dev                # Start Electron dev mode (Vite HMR + Electron window)
 npm run build              # Build for production
-npm run test:generator     # Run mock-fetch tests for the AI service (27 tests)
+npm run test:generator     # Mock-fetch tests for the AI character generator service (27 tests)
+npm run test:chat          # Source-text + behavioral tests for chat.js system-prompt injection (9 tests)
+node scripts/test-settingsServices.mjs   # Mock-fetch tests for settings services (28 tests, no npm script yet)
 ```
 
-- No linter, no typecheck, no test framework. `npm run test:generator` is a **manual mock-fetch script** (`scripts/test-characterGenerator.mjs`) that exercises `src/services/characterGenerator.js` — run it whenever you change that file. It does not cover UI or Vue components; verify those by hand via `npm run dev`.
+- No linter, no typecheck, no test framework. All three test scripts are **manual mock-fetch scripts** under `scripts/`. They cover service-layer logic only; verify UI / Vue components by hand via `npm run dev`.
 - `src/` is the renderer source. `electron/` is the main process source.
 - Tailwind CSS v4 via Vite plugin (`@tailwindcss/vite`). **Every CSS file that uses utility classes must start with `@import "tailwindcss";`** — see "Tailwind v4" below.
 
@@ -51,10 +53,26 @@ For new features with non-trivial logic, follow this 4-layer pattern (establishe
 | `src/main.js` | Vue entry + Pinia setup + `window.__getAllDataForExport` |
 | `src/App.vue` | Root component: sidebar + `<component :is>` routing + global `<ConfirmModal>` |
 | `src/services/characterGenerator.js` | **Pure** LLM streaming + section parser service (no Vue/Pinia/Electron) |
+| `src/services/apiProviders.js` | **Pure** API/文生图 provider 预设表（8 个 API + 2 个文生图 + 2 个自定义槽）+ `resolveActiveApiProvider` / `resolveActiveImageGenProvider` 解析 helpers |
+| `src/services/connectionCheck.js` | **Pure** `checkApiConnection` / `checkImageGenConnection` 连接探测（GET /models + HEAD /images/generations，10s AbortController） |
+| `src/services/imageGen.js` | **Pure** 文生图 fetch + `IMAGE_STYLES` / `IMAGE_SIZES` / `STYLE_ARTISTS` / `sizeToDims` / `styleToArtists` / `generateImages`。STYLE_ARTISTS 字符串必须从 `assets/js/app.js:9461-9480` 整段复制，**不要凭想象写** |
+| `src/services/userProfile.js` | **Pure** 人设 CRUD/迁移纯函数：`createProfile` / `ensureUserProfiles` / `buildUserInfoPrompt` / `applyPersonToggle` / `migrateLegacyUser` |
 | `src/composables/useGenerator.js` | Vue composable wrapping `runNewGeneration` with reactive state |
+| `src/composables/useUserProfile.js` | Vue composable wrapping `settings.userProfiles` + `switchProfile` / `setPerson` |
+| `src/composables/useImageGenTrigger.js` | Vue composable 解析 AI 回复中的 `<auto_image_gen>...</auto_image_gen>` 标签并调用 `imageGen.generateImages`，串行生成，错误时设 `message.imageStatus = 'error'` 并 toast |
 | `src/stores/*.js` | 8 Pinia stores (chat, characters, settings, ui, memory, presets, worldinfo, regex) |
+| `src/stores/settings.js` | 扩展后含 6 个新字段：`userProfiles: []` / `activeProfileId` / `apiStatus` / `apiLatency` / `imageGenStatus` / `imageGenLatency`；7 个新 actions：`setUserProfiles` / `addUserProfile` / `deleteUserProfile` / `setActiveProfile` / `updateActiveProfile` / `setApiStatus` / `setImageGenStatus`；`loadSettings` 内置幂等旧数据迁移（apiKey → apiProviderKeys / imageGenKey → imageGenProviderKeys / user → userProfiles，迁移后 `delete settings.user`）；300ms 防抖的 `watch(settings, pushToMainProcess, { deep: true })` |
+| `src/stores/chat.js` | 消息加 `images: []` 字段；`buildApiMessages` 注入当前 active profile 的 `[User Info]` 段到 system prompt；`generateResponse` finally 块动态 `import('../composables/useImageGenTrigger.js')` 触发文生图，并带 `wasAborted` 守卫避免用户取消后仍生成图片 |
 | `src/views/*.vue` | 12 page-level Vue components (Chat, Character, Memory, Tool, Usage, Square, Generator, UITemplates, Presets, WorldInfo, Regex, Settings) |
-| `src/components/` | Shared components: `chat/`, `common/`, `sidebar/`, `characters/`, `generator/` |
+| `src/views/SettingsView.vue` | 装配 5 个 section：`<UserProfileSection />` / `<ApiConfigSection />` / `<ImageGenSection />` + 原有 UI 偏好 + 数据管理 |
+| `src/components/` | Shared components: `chat/`, `common/`, `sidebar/`, `characters/`, `generator/`, `settings/` |
+| `src/components/settings/ProviderDropdown.vue` | 可复用：下拉选 provider（带 logo/自定义槽） |
+| `src/components/settings/ConnectionStatusBadge.vue` | 可复用：状态徽章（绿/红/灰 + 延迟） |
+| `src/components/settings/UserProfileSection.vue` | 多 profile 管理 UI：头像条 + 当前 profile 编辑（name/description/avatar/person），切换人称自动联动 presets |
+| `src/components/settings/ApiConfigSection.vue` | API provider + URL/Key/模型 + 测试连接（`ProviderDropdown` + `ConnectionStatusBadge` 复用） |
+| `src/components/settings/ImageGenSection.vue` | 文生图 provider + 风格/尺寸/数量 + 测试连接（`ProviderDropdown` + `ConnectionStatusBadge` 复用） |
+| `src/components/chat/MessageBubble.vue` | 渲染消息末尾 `images` 网格（2 列 + base64 dataURL），`imageStatus === 'generating'` 时显示 spinner |
+| `src/components/sidebar/Sidebar.vue` | 左下角 user mini：从 `useSettingsStore` 读 active profile，实时显示头像/名称（绑定到 reactive `computed`） |
 | `src/components/common/ConfirmModal.vue` | Global confirm dialog driven by `ui.confirmDialog` state |
 | `src/api/index.js` | `fetch()` API wrapper, supports SSE streaming via `ReadableStreamDefaultReader` |
 | `src/utils/` | ESM versions of original browser utilities (card-utils, ui-select, utils) |
@@ -63,6 +81,8 @@ For new features with non-trivial logic, follow this 4-layer pattern (establishe
 | `character/ai-assistant.js` | Self-contained copy of the diff-mode AI service for the workshop window |
 | `character/diff-modal.js` | Workshop AI assistant modal UI (streaming diff cards) |
 | `scripts/test-characterGenerator.mjs` | Mock-fetch test script — 27 tests covering `characterGenerator.js` |
+| `scripts/test-settingsServices.mjs` | Mock-fetch test script — 28 tests covering `apiProviders` / `connectionCheck` / `imageGen` / `userProfile`。无 npm script，直接 `node scripts/test-settingsServices.mjs` |
+| `scripts/test-chatInjection.mjs` | 9 tests 验证 `chat.js` system-prompt 注入行为（含 2 个 behavioral + 7 个 source-text regression）。`npm run test:chat` |
 | `scripts/extract-prompt.mjs` | One-shot re-sync of `SINGLE_PLAYER_SYSTEM_PROMPT` from web's `character/index.html` |
 
 ## Tailwind v4
@@ -108,6 +128,32 @@ User types a free-text description in `GeneratorView` → LLM streams a structur
 - **System prompt:** `SINGLE_PLAYER_SYSTEM_PROMPT` in `src/services/characterGenerator.js` is a verbatim copy of the web version's `singlePlayerSystemPrompt` (in `character/index.html`). Re-sync via `node scripts/extract-prompt.mjs` if the web prompt changes.
 - **Spec + plan:** `docs/superpowers/specs/2026-07-25-ai-character-generator-design.md`, `docs/superpowers/plans/2026-07-25-ai-character-generator.md`
 - **Tags:** `v1-ai-character-generator` is the release tag. `phase-1-core-service` / `phase-2-generatorview` / `phase-3-workshop` mark the phase boundaries.
+
+## Settings Page（v1-settings-page-parity）
+
+The settings page (`SettingsView.vue`) has 5 sections matching the web version's experience:
+
+1. **用户人设** (`UserProfileSection.vue`) — multi-profile CRUD with avatar upload, name, description, person (第二/第三人称). Switching person auto-toggles the "第二人称"/"第三人称" presets.
+2. **API 配置** (`ApiConfigSection.vue`) — provider dropdown (8 built-in + 2 custom slots), URL/Key, model tiers (quality/balanced/fast), temperature, stream toggle, test connection.
+3. **文生图配置** (`ImageGenSection.vue`) — provider dropdown (2 built-in + 2 custom slots), style (7 options), size (9 options), count (1-6), test connection.
+4. **界面偏好** — font size, font family, character background, immersive mode, context size.
+5. **数据管理** — full backup/restore via `.rphub` file.
+
+**Sidebar binding**: the user mini at the bottom-left of `Sidebar.vue` reads from the active profile via `useSettingsStore` — switching profile in settings instantly updates the sidebar avatar/name.
+
+**Chat integration**:
+- The active profile's `[User Info]` block is injected into every chat request's system prompt via `chat.js#buildApiMessages`.
+- Image gen is triggered by parsing `<auto_image_gen>...</auto_image_gen>` tags in the AI reply (via `useImageGenTrigger.js`). Generated images are attached to the message and rendered in `MessageBubble.vue` as a 2-column grid. Image gen is suppressed when the user cancels mid-generation (`wasAborted` guard).
+
+**Legacy data migration** (in `settings.js#loadSettings`): runs once at startup, idempotent.
+- `apiKey` → `apiProviderKeys[currentProviderId]`
+- `imageGenKey` → `imageGenProviderKeys.agnes` (+ default model)
+- `settings.user` → first `userProfiles` entry, then `delete settings.user`
+
+**Provider preset tables** (8 API + 2 文生图) live in `src/services/apiProviders.js`. The `STYLE_ARTISTS` constants in `src/services/imageGen.js` are **copied verbatim from the web version's `assets/js/app.js:9461-9480`** — do not invent.
+
+- **Spec + plan:** `docs/superpowers/specs/2026-07-26-settings-page-feature-parity-design.md`, `docs/superpowers/plans/2026-07-26-settings-page-feature-parity.md`
+- **Tag:** `v1-settings-page-parity`
 
 ## Conventions
 

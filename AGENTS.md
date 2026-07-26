@@ -5,7 +5,7 @@
 | 版本 | 目录 | 技术栈 | 状态 |
 |------|------|--------|------|
 | **浏览器版** | `/` (当前) | Vue 3 CDN + 原生 HTML/JS | 原始版，维护模式 |
-| **Electron 桌面版** | `rphub-desktop/` | electron-vite + Vue 3 + Pinia + Tailwind v4 | **重构目标 + 已带 AI 角色卡生成** |
+| **Electron 桌面版** | `rphub-desktop/` | electron-vite + Vue 3 + Pinia + Tailwind v4 | **重构目标 + AI 角色卡生成 + 完整设置页（用户人设 / API 预设 / 文生图）** |
 
 ---
 
@@ -62,6 +62,13 @@ pinme upload .
 - `electron/preload/index.js` — `contextBridge`，暴露 `window.electronAPI`（主窗口）和 `window.workshopAPI`（工坊窗口）
 - 渲染进程：Vue 3 Options API + Pinia 状态管理 + `<component :is>` 视图路由
 - **AI 角色卡生成**：`src/services/characterGenerator.js` 纯函数模块（无 Vue/Pinia 依赖），`src/composables/useGenerator.js` 包装成响应式状态，工坊窗口自包含的 `character/ai-assistant.js` 提供 diff 编辑
+- **设置页与网页版对齐**（`rphub-desktop/AGENTS.md` "Settings Page" 章节）：
+  - 4 个纯 service：`apiProviders`（provider 预设）/ `connectionCheck`（连接探测）/ `imageGen`（文生图）/ `userProfile`（人设 CRUD）
+  - 2 个 composable：`useUserProfile` / `useImageGenTrigger`
+  - 5 个 settings 组件：`UserProfileSection` / `ApiConfigSection` / `ImageGenSection` + 可复用 `ProviderDropdown` / `ConnectionStatusBadge`
+  - 聊天集成：当前 active profile 的 `[User Info]` 段自动注入到 system prompt；`useImageGenTrigger` 解析 AI 回复中的 `<auto_image_gen>` 标签并在 `MessageBubble` 渲染图片网格
+  - 侧边栏 user mini 实时绑定 active profile
+  - 旧数据幂等迁移：`apiKey` / `imageGenKey` / `settings.user` → 新结构
 - 所有依赖通过 npm 管理，零 CDN
 - 数据持久化保留 `localforage`（IndexedDB）
 - 详细分层、测试脚本、Tailwind v4 注意事项、IPC 通道见 `rphub-desktop/AGENTS.md`
