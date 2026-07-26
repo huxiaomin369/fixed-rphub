@@ -69,6 +69,7 @@ pinme upload .
   - 聊天集成：当前 active profile 的 `[User Info]` 段自动注入到 system prompt；`useImageGenTrigger` 解析 AI 回复中的 `<auto_image_gen>` 标签并在 `MessageBubble` 渲染图片网格
   - 侧边栏 user mini 实时绑定 active profile
   - 旧数据幂等迁移：`apiKey` / `imageGenKey` / `settings.user` → 新结构
+- **预设 / 世界书 / 正则对齐**（`v1-presets-wi-regex-parity`）：18 个内置种子条目（15 presets / 1 WI / 2 regex），统一 `global`/`character` 范围模型跨三个功能，接入 `chat.js#buildApiMessages` 执行管线，挂钩人称 / 自动文生图 / `{{user}}` 开关。详见 `rphub-desktop/docs/superpowers/specs/2026-07-26-presets-worldinfo-regex-parity-design.md`。
 - 所有依赖通过 npm 管理，零 CDN
 - 数据持久化保留 `localforage`（IndexedDB）
 - 详细分层、测试脚本、Tailwind v4 注意事项、IPC 通道见 `rphub-desktop/AGENTS.md`
