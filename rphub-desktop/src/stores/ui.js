@@ -68,12 +68,20 @@ export const useUIStore = defineStore('ui', () => {
 
   function closeConfirmDialog() {
     confirmDialog.value = { ...confirmDialog.value, open: false, onConfirm: null }
+    if (_confirmResolve) {
+      _confirmResolve(false)
+      _confirmResolve = null
+    }
   }
 
   function handleConfirmDialog() {
     const cb = confirmDialog.value.onConfirm
     closeConfirmDialog()
     if (typeof cb === 'function') cb()
+    if (_confirmResolve) {
+      _confirmResolve(true)
+      _confirmResolve = null
+    }
   }
 
   /**
@@ -81,6 +89,26 @@ export const useUIStore = defineStore('ui', () => {
    * On confirm: invokes the existing electronAPI.openWorkshop(charData) (passes the
    * full character object, NOT just an id — see the IPC contract in electron/preload).
    */
+  // Internal: resolves the promise returned by confirm()
+  let _confirmResolve = null
+
+  /**
+   * Promise-based confirm. Returns a promise that resolves true/false.
+   * Wires into the same confirmDialog state used by <ConfirmModal> in App.vue.
+   */
+  function confirm(message, title = '确认操作') {
+    return new Promise((resolve) => {
+      _confirmResolve = resolve
+      showConfirmDialog({
+        title,
+        message,
+        confirmText: '确认',
+        confirmButtonClass: 'bg-red-500 hover:bg-red-600',
+        onConfirm: () => {},
+      })
+    })
+  }
+
   function promptOpenWorkshop(character) {
     showConfirmDialog({
       title: '继续编辑?',
@@ -110,6 +138,7 @@ export const useUIStore = defineStore('ui', () => {
     showConfirmDialog,
     closeConfirmDialog,
     handleConfirmDialog,
-    promptOpenWorkshop
+    promptOpenWorkshop,
+    confirm
   }
 })
