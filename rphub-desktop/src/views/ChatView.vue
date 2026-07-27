@@ -240,7 +240,11 @@ export default {
     }
 
     function handleSendMessage(text) {
-      chatStore.userInput.value = text
+      // Pinia setup stores auto-unwrap refs, so `chatStore.userInput` is
+      // already the string value. Assigning to the store property updates
+      // the underlying ref — do NOT use `.value` here (would throw
+      // "Cannot create property 'value' on string ''").
+      chatStore.userInput = text
       chatStore.sendMessage(currentCharacter.value, settings)
     }
 

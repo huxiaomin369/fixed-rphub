@@ -41,11 +41,41 @@ export const useChatStore = defineStore('chat', () => {
     }
     try {
       const data = await localforage.getItem(`chat_${characterId}`)
-      chatHistory.value = data || []
+      if (Array.isArray(data) && data.length > 0) {
+        chatHistory.value = data
+        return
+      }
+      // No saved history — seed the chat with the character's greeting
+      // (mirrors web's `loadStoredChatHistory` → `createInitialChatHistory` at
+      // app.js:9781-9790 / 9756-9760). Without this, users land on an empty
+      // chat with no opening bubble even though the character has first_mes.
+      const charactersStore = useCharacterStore()
+      const char = charactersStore.characterList.find(
+        c => c.id === characterId || c.uuid === characterId
+      )
+      chatHistory.value = createInitialChatHistory(char)
+      // Persist so the greeting survives reload (web persists via autosave;
+      // we persist explicitly because chat.js has no autosave hook).
+      await saveChatHistory()
     } catch (err) {
       console.error('Failed to load chat history:', err)
       chatHistory.value = []
     }
+  }
+
+  // Build the initial chat history for a character — a single assistant
+  // bubble containing `first_mes`. Returns [] if the character has no
+  // greeting. Matches web's `createInitialChatHistory` (app.js:9756-9760).
+  function createInitialChatHistory(char) {
+    if (!char?.first_mes) return []
+    return [{
+      id: generateId(),
+      role: 'assistant',
+      name: char.name,
+      content: char.first_mes,
+      timestamp: Date.now(),
+      images: []
+    }]
   }
 
   async function saveChatHistory(characterId) {
@@ -83,8 +113,25 @@ export const useChatStore = defineStore('chat', () => {
 
   async function generateResponse(character, settings) {
     if (!character || isGenerating.value) return
-    if (!settings.apiUrl || !settings.apiKey || !settings.model) {
-      console.error('API not configured')
+    // 从新的 provider-key 结构中解析 API Key（兼容旧结构）
+    // 对应 web 版 settings.apiKey 访问模式，但兼容 v1-settings-page-parity 迁移后密钥位于 apiProviderKeys 的情况
+    const apiKey = settings.apiProviderKeys?.[settings.apiProviderId] || settings.apiKey
+    if (!settings.apiUrl || !apiKey || !settings.model) {
+      console.error('API not configured:', {
+        apiUrl: settings.apiUrl,
+        apiProviderId: settings.apiProviderId,
+        hasKey: !!apiKey,
+        model: settings.model
+      })
+      // 用户反馈：推入一条错误消息替代静默返回，对应 web 版的 showToast（app.js:5285+）
+      chatHistory.value.push({
+        id: generateId(),
+        role: 'assistant',
+        name: character.name,
+        content: '⚠️ **未配置 API**\n\n请前往「设置 → API 配置」填写 API Key、URL 和模型。',
+        timestamp: Date.now(),
+        isError: true
+      })
       return
     }
 
@@ -99,6 +146,7 @@ export const useChatStore = defineStore('chat', () => {
     // Hoisted to function scope so finally block can reference it
     let assistantMsg
     let wasAborted = false
+    let receivedAnyContent = false  // 标记是否收到过有效内容，用于清理空气泡
 
     try {
       const baseURL = settings.apiUrl.replace(/\/+$/, '')
@@ -118,7 +166,7 @@ export const useChatStore = defineStore('chat', () => {
       if (!settings.stream) {
         const data = await apiRequest({
           baseURL,
-          apiKey: settings.apiKey,
+          apiKey,
           model: settings.model,
           messages,
           stream: false,
@@ -137,7 +185,7 @@ export const useChatStore = defineStore('chat', () => {
       // Streaming request
       const reader = await apiRequest({
         baseURL,
-        apiKey: settings.apiKey,
+        apiKey,
         model: settings.model,
         messages,
         stream: true,
@@ -176,6 +224,7 @@ export const useChatStore = defineStore('chat', () => {
               if (content) {
                 assistantMsg.content += content
                 isThinking.value = false
+                receivedAnyContent = true
               }
               if (reasoning) {
                 assistantMsg.reasoning = (assistantMsg.reasoning || '') + reasoning
@@ -191,12 +240,33 @@ export const useChatStore = defineStore('chat', () => {
       if (err.name === 'AbortError') {
         wasAborted = true
         console.log('Generation cancelled')
+        // 如果取消前未收到任何内容，移除空气泡
+        if (!receivedAnyContent && assistantMsg) {
+          const idx = chatHistory.value.indexOf(assistantMsg)
+          if (idx !== -1) chatHistory.value.splice(idx, 1)
+        }
       } else {
         console.error('Generation error:', err)
-        // Add error message to chat
-        const lastMsg = chatHistory.value[chatHistory.value.length - 1]
-        if (lastMsg && lastMsg.role === 'assistant') {
-          lastMsg.content += `\n\n**Error:** ${err.message}`
+        // 如果未收到任何内容，移除空气泡并推入一条清晰的错误消息
+        if (!receivedAnyContent && assistantMsg) {
+          const idx = chatHistory.value.indexOf(assistantMsg)
+          if (idx !== -1) {
+            chatHistory.value.splice(idx, 1)
+            chatHistory.value.push({
+              id: generateId(),
+              role: 'assistant',
+              name: character.name,
+              content: `⚠️ **请求失败**\n\n${err.message}\n\n请检查网络、API Key 和模型配置。`,
+              timestamp: Date.now(),
+              isError: true
+            })
+          }
+        } else {
+          // 已有部分内容，追加错误信息到现有气泡
+          const lastMsg = chatHistory.value[chatHistory.value.length - 1]
+          if (lastMsg && lastMsg.role === 'assistant') {
+            lastMsg.content += `\n\n**Error:** ${err.message}`
+          }
         }
       }
     } finally {
@@ -370,7 +440,10 @@ export const useChatStore = defineStore('chat', () => {
   }
 
   function clearChat() {
-    chatHistory.value = []
+    // After clearing, restore the character's greeting so the chat doesn't
+    // look broken. Matches web's `clearChat` (app.js:4580-4587).
+    const charactersStore = useCharacterStore()
+    chatHistory.value = createInitialChatHistory(charactersStore.currentCharacter)
     streamingMessage.value = ''
     isThinking.value = false
     isGenerating.value = false
