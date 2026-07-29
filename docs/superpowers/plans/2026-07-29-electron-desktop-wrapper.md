@@ -188,7 +188,7 @@ cd desktop && node --test copy-web.test.js
 const fs = require('node:fs');
 const path = require('node:path');
 
-const DEFAULT_SRC = path.join(__dirname, '..', '..');
+const DEFAULT_SRC = path.join(__dirname, '..');
 const DEFAULT_DST = path.join(__dirname, '..', 'dist-stage');
 
 // 顶层需要拷贝的条目
