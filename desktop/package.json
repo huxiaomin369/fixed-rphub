@@ -1,0 +1,50 @@
+{
+  "name": "roleplay-hub-desktop",
+  "version": "0.1.0",
+  "description": "Electron desktop wrapper for RP-Hub",
+  "main": "main.js",
+  "private": true,
+  "scripts": {
+    "start": "electron .",
+    "stage": "node copy-web.js",
+    "test": "node --test copy-web.test.js",
+    "dist": "npm run stage && electron-builder",
+    "dist:nsis": "npm run stage && electron-builder --win nsis",
+    "dist:portable": "npm run stage && electron-builder --win portable"
+  },
+  "devDependencies": {
+    "electron": "^32.0.0",
+    "electron-builder": "^25.0.0"
+  },
+  "build": {
+    "appId": "com.rphub.desktop",
+    "productName": "Roleplay Hub",
+    "directories": {
+      "output": "release",
+      "buildResources": "build"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "package.json",
+      "dist-stage/**/*"
+    ],
+    "win": {
+      "target": [
+        { "target": "nsis", "arch": ["x64"] },
+        { "target": "portable", "arch": ["x64"] }
+      ],
+      "icon": "build/icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true
+    },
+    "portable": {
+      "artifactName": "RoleplayHub-Portable-${version}.exe"
+    }
+  }
+}
