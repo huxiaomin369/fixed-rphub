@@ -3513,6 +3513,62 @@
                     </div>
                 </div>
 
+                <!-- Context Compression Settings (Collapsible like Memory Settings) -->
+                <div
+                    class="bg-white/70 backdrop-blur-sm p-1 rounded-2xl border border-gray-200 shadow-sm mb-4">
+                    <button @click="showContextSettings = !showContextSettings; settingsHelpTopic = ''"
+                        :class="['w-full flex justify-between items-center px-4 py-3 rounded-xl transition-all font-bold',
+                                     showContextSettings ? 'bg-primary-50 text-primary-700' : 'text-gray-700 hover:bg-gray-50']">
+                        <span class="flex items-center">
+                            <div
+                                :class="['p-1.5 rounded-lg mr-3 transition-colors', showContextSettings ? 'bg-primary-100 text-primary-600' : 'bg-gray-100 text-gray-500']">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4">
+                                    </path>
+                                </svg>
+                            </div>
+                            上下文压缩设置
+                        </span>
+                        <span class="flex items-center gap-3 flex-shrink-0">
+                            <svg :class="{'transform rotate-180': showContextSettings}"
+                                class="w-5 h-5 transition-transform duration-300" fill="none" stroke="currentColor"
+                                viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7">
+                                </path>
+                            </svg>
+                        </span>
+                    </button>
+                    <div v-show="showContextSettings" class="px-4 pb-4 pt-3 border-t border-gray-100 animate-fade-in">
+                        <div class="bg-gray-50/60 p-3 rounded-xl border border-gray-100">
+                            <div class="relative mb-2 flex items-center">
+                                <label class="text-xs font-medium text-gray-500">上下文压缩阈值（MAX_CONTEXT_SIZE）</label>
+                                <button type="button"
+                                    @click.stop="settingsHelpTopic = settingsHelpTopic === 'maxContextSize' ? '' : 'maxContextSize'"
+                                    class="settings-help-trigger"
+                                    :class="{ 'is-open': settingsHelpTopic === 'maxContextSize' }"
+                                    :aria-expanded="settingsHelpTopic === 'maxContextSize'"
+                                    aria-label="查看上下文压缩阈值说明">
+                                    <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M9.1 9a3 3 0 115.8 1.1c-.6 1.1-1.9 1.3-2.5 2.2-.3.4-.4.8-.4 1.2M12 17h.01"></path>
+                                    </svg>
+                                </button>
+                                <div v-if="settingsHelpTopic === 'maxContextSize'" class="settings-help-popover">
+                                    <span class="settings-help-popover-content">发送上下文总字数÷4 达到该阈值后，最近 8 轮之前的旧对话将由总结模型压缩为一条 User 消息</span>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <input v-model.number="settings.maxContextSize" type="number" min="10000" step="10000"
+                                    class="flex-1 px-3 py-2 text-sm bg-white/80 border border-gray-200 rounded-xl focus:bg-white focus:border-primary-300 focus:ring-2 focus:ring-primary-100 outline-none transition-all"
+                                    placeholder="200000">
+                                <span
+                                    class="text-xs font-mono text-primary-600 bg-primary-50 px-1.5 py-0.5 rounded border border-primary-100 whitespace-nowrap">tokens</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Vector Memory View -->
                 <div v-if="memorySettings.enabled && memorySettings.mode === 'vector'"
                     class="bg-white/70 backdrop-blur-sm p-1 rounded-2xl border border-gray-200 shadow-sm mb-4 overflow-hidden">
