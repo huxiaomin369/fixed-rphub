@@ -1160,7 +1160,7 @@
                                     </button>
                                     <div v-if="lastContextTokens !== null"
                                         class="flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] md:text-xs font-mono bg-white/50 backdrop-blur-sm border border-white/50 shadow-sm text-gray-500"
-                                        :title="`当前上下文 ${lastContextTokens.toLocaleString()} / 上限 ${settings.maxContextSize.toLocaleString()}`">
+                                        :title="`当前上下文 ${formatTokenCount(lastContextTokens)} / 上限 ${formatTokenCount(settings.maxContextSize)}`">
                                         <span class="text-teal-600 font-bold">{{ formatTokenCount(lastContextTokens) }}</span>
                                         <span class="opacity-60">/</span>
                                         <span>{{ formatTokenCount(settings.maxContextSize) }}</span>
