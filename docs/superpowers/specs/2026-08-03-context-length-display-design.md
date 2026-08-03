@@ -87,7 +87,7 @@ recordApiUsage(responseUsage, { type, model, detail });
 
 | 场景 | 行为 |
 | --- | --- |
-| API 不返回 usage（极少数 provider） | `reported: false` → 显示清空，徽章隐藏 |
+| API 不返回 usage（极少数 provider） | `reported: false` → 不更新，徽章保留上次成功值（仅在生命周期重置点清空） |
 | 流式请求 | 最后一块 chunk 携带 usage，结束后统一更新一次 |
 | 工具续写（activeToolDepth > 0） | 同一点位更新，显示的是该次续写的上下文（含历史），语义一致 |
 | 用户修改 maxContextSize | 徽章分母自动响应式更新，无需额外代码 |
