@@ -6378,7 +6378,7 @@ ${content}
                         }
 
                         const normalizedUsage = normalizeApiUsage(responseUsage);
-                        lastContextTokens.value = normalizedUsage.reported ? normalizedUsage.inputTokens : null;
+                        if (normalizedUsage.reported) lastContextTokens.value = normalizedUsage.inputTokens;
                         recordApiUsage(responseUsage, {
                             type: activeToolDepth > 0 ? 'tool_continuation' : 'chat',
                             model: requestModel,
@@ -10592,6 +10592,7 @@ year 2025, textless version, {{petite,loli}}, Petite figure, no text, The image 
                             if (currentCharacterIndex.value >= 0) {
                                 const char = characters.value[currentCharacterIndex.value];
                                 chatHistory.value = importedChat;
+                                lastContextTokens.value = null;
 
                                 // Save to DB
                                 if (char.uuid) {
