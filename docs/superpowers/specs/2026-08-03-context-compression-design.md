@@ -67,8 +67,8 @@
 ### 6. 消息重建细节
 
 - 摘要 User 消息在构建的 messages 中标记 `_compressed: true`（仅调试可见）。
-- 重建只替换聊天历史部分（`chatHistoryForContext` 阶段之后的结果），system / 预设 / 开场白 / 世界书注入 / 工具结果插入逻辑不变——实现上采取"两遍构建"：先正常组装并估算，超限时带压缩标记重跑组装函数，历史部分换成 [摘要 User 消息 + 最近 8 轮]。
-- 摘要消息的 name 与普通 user 消息一致（user.name）。
+- 实现采取"单遍就地替换"：消息完整组装并完成正则处理之后（`generateResponse` 中 `postprocessContextMessages(messages).map(...)` 之后、上下文查看器之前），对最终 messages 数组估算；超限时把带 `_contextFloor` 且 floor ≤ `totalFloors - 2*8` 的历史消息整体替换为一条摘要 User 消息（插入在首个被替换消息的位置），其余消息（system / 预设 / 开场白 / 世界书注入 / 工具结果 / 最近 8 轮）保持不动。
+- 摘要消息的 name 与普通 user 消息一致（user.name），无 `_sourceIndexes`/`_contextFloor`。
 
 ### 7. 缓存持久化
 
