@@ -4579,6 +4579,7 @@ ${content}
                 abortClassicBatchExtraction();
                 resetChatRenderWindow();
                 chatHistory.value = [];
+                lastContextTokens.value = null;
                 if (currentCharacter.value && currentCharacter.value.first_mes) {
                     chatHistory.value.push({
                         role: 'assistant',
@@ -9504,6 +9505,7 @@ ${content}
                     if (currentCharacterIndex.value === index) {
                         currentCharacterIndex.value = -1;
                         chatHistory.value = [];
+                        lastContextTokens.value = null;
                     } else if (currentCharacterIndex.value > index) {
                         currentCharacterIndex.value--;
                     }
@@ -9565,7 +9567,10 @@ ${content}
                     if (currentUUID) {
                         const newIndex = characters.value.findIndex(c => c.uuid === currentUUID);
                         currentCharacterIndex.value = newIndex;
-                        if (newIndex === -1) chatHistory.value = [];
+                        if (newIndex === -1) {
+                            chatHistory.value = [];
+                            lastContextTokens.value = null;
+                        }
                     } else {
                         currentCharacterIndex.value = -1;
                     }
@@ -10024,6 +10029,7 @@ year 2025, textless version, {{petite,loli}}, Petite figure, no text, The image 
                 loadGlobalUiTemplateRuntimeForCharacter(char);
             }
             chatHistory.value = loadedChatHistory;
+            lastContextTokens.value = null;
 
             // Load Character Specific Data
             const characterWorldInfo = Array.isArray(char.worldInfo)
