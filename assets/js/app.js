@@ -540,6 +540,7 @@ createApp({
         // Service Status
         const apiStatus = ref('unknown'); // 'unknown', 'checking', 'connected', 'error'
         const apiLatency = ref(0);
+        const lastContextTokens = ref(null); // 最近一次 API 成功响应上报的当前上下文 token 数（prompt_tokens）
         const imageGenStatus = ref('unknown');
         const imageGenLatency = ref(0);
 
@@ -6375,6 +6376,8 @@ ${content}
                             }
                         }
 
+                        const normalizedUsage = normalizeApiUsage(responseUsage);
+                        lastContextTokens.value = normalizedUsage.reported ? normalizedUsage.inputTokens : null;
                         recordApiUsage(responseUsage, {
                             type: activeToolDepth > 0 ? 'tool_continuation' : 'chat',
                             model: requestModel,
@@ -11602,7 +11605,7 @@ ${memoryFragmentSection}
             isSquareLoading, squareUrl, onSquareLoad, // Square exports
             editorTab, characterDisplayLimit, displayedCharacters, loadMoreCharacters,
             isAutoImageGenEnabled,
-            apiStatus, apiLatency, imageGenStatus, imageGenLatency, checkAllStatuses, // Status Exports
+            apiStatus, apiLatency, imageGenStatus, imageGenLatency, checkAllStatuses, lastContextTokens, // Status Exports
             toggleAutoImageGen, setWorldInfoEnabled,
             showQuotaPanel, quotaValue, quotaLoading, quotaError, quotaAvailable, fetchQuota, // Quota exports
             // Memory System Exports
