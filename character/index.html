@@ -16,18 +16,26 @@
     <script src="../assets/js/card-utils.js"></script>
     <script src="../assets/js/ui-select.js"></script>
     <style>
-        html {
-            -webkit-text-size-adjust: 100% !important;
-            -moz-text-size-adjust: 100% !important;
-            -ms-text-size-adjust: 100% !important;
-            text-size-adjust: 100% !important;
-        }
-
         :root {
+            --app-visual-height: 100vh;
             --app-font-modern: "Inter", "HarmonyOS Sans SC", "MiSans", "OPPO Sans", "Alibaba PuHuiTi 3.0", "Alibaba PuHuiTi", "Noto Sans SC", "Source Han Sans SC", "Microsoft YaHei UI", "Segoe UI", Arial, sans-serif;
             --app-font-system: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", Arial, sans-serif;
             --app-font-serif: "Lora", "Noto Serif SC", "Source Han Serif SC", "Source Han Serif CN", STSong, SimSun, Georgia, Cambria, "Times New Roman", Times, serif;
             --app-font-family: var(--app-font-modern);
+        }
+
+        @supports (height: 100dvh) {
+            :root {
+                --app-visual-height: 100dvh;
+            }
+        }
+
+        html {
+            height: 100%;
+            -webkit-text-size-adjust: 100% !important;
+            -moz-text-size-adjust: 100% !important;
+            -ms-text-size-adjust: 100% !important;
+            text-size-adjust: 100% !important;
         }
 
         :root[data-app-font="serif"] {
@@ -43,6 +51,9 @@
         }
 
         body {
+            width: 100%;
+            height: var(--app-visual-height, 100%);
+            overflow: hidden;
             font-family: var(--app-font-family) !important;
             font-weight: 500 !important;
             background-color: #f3f4f6;
@@ -52,6 +63,20 @@
 
         #app {
             font-family: var(--app-font-family) !important;
+            height: var(--app-visual-height, 100%);
+            min-height: 0;
+        }
+
+        .workshop-layout,
+        .workshop-content,
+        .workshop-main {
+            min-height: 0;
+        }
+
+        .workshop-scroll,
+        .workshop-sidebar-scroll {
+            -webkit-overflow-scrolling: touch;
+            min-height: 0;
         }
 
         .font-normal {
@@ -168,6 +193,59 @@
             -webkit-backdrop-filter: blur(4px) !important;
         }
 
+        @supports (-webkit-touch-callout: none) {
+            @media (hover: none) and (pointer: coarse) {
+                html,
+                body.overflow-hidden {
+                    height: auto;
+                    min-height: 100%;
+                    overflow-x: hidden !important;
+                    overflow-y: auto !important;
+                }
+
+                body.overflow-hidden,
+                #app {
+                    min-height: 100dvh;
+                }
+
+                #app {
+                    height: auto;
+                    overflow: visible;
+                }
+
+                #app .workshop-layout,
+                #app .workshop-content,
+                #app .workshop-main {
+                    height: auto;
+                    overflow: visible;
+                }
+
+                #app .workshop-layout,
+                #app .workshop-main,
+                #app .workshop-scroll {
+                    flex: none;
+                }
+
+                #app .workshop-scroll {
+                    overflow: visible;
+                    padding-bottom: calc(7rem + env(safe-area-inset-bottom));
+                }
+
+                #app .workshop-input-panel {
+                    position: fixed;
+                    right: 0;
+                    bottom: 0;
+                    left: 0;
+                    padding-bottom: max(1rem, env(safe-area-inset-bottom));
+                }
+
+                #app * {
+                    backdrop-filter: none !important;
+                    -webkit-backdrop-filter: none !important;
+                }
+            }
+        }
+
         /* Custom Spring Animation for Avatar */
         .ease-spring {
             transition-timing-function: cubic-bezier(0.175, 0.885, 0.32, 1.275);
@@ -238,9 +316,9 @@
     </script>
 </head>
 
-<body class="h-screen flex flex-col overflow-hidden bg-base-200/30">
+<body class="flex flex-col overflow-hidden bg-base-200/30">
 
-    <div id="app" class="h-full flex flex-col" v-cloak>
+    <div id="app" class="h-full min-h-0 flex flex-col" v-cloak>
         <!-- Header -->
         <header
             class="navbar bg-base-100/80 backdrop-blur-md shadow-sm z-20 px-3 md:px-4 shrink-0 min-h-14 h-14 md:h-16 border-b border-base-200 sticky top-0">
@@ -753,12 +831,12 @@
             </form>
         </dialog>
 
-        <div class="drawer md:drawer-open flex-1 overflow-hidden">
+        <div class="drawer md:drawer-open workshop-layout flex-1 overflow-hidden">
             <input id="my-drawer" type="checkbox" class="drawer-toggle" />
 
-            <div class="drawer-content flex flex-col h-full overflow-hidden relative bg-base-100">
+            <div class="drawer-content workshop-content flex flex-col h-full overflow-hidden relative bg-base-100">
                 <!-- Main Content Area -->
-                <div class="flex-1 flex flex-col overflow-hidden">
+                <div class="workshop-main flex-1 flex flex-col overflow-hidden">
                     <!-- Tabs -->
                     <!-- Tabs -->
                     <div
@@ -782,7 +860,7 @@
                         </div>
                     </div>
                     <!-- Scrollable Content -->
-                    <div class="flex-1 overflow-y-auto p-4 md:p-8 bg-base-200/30">
+                    <div class="workshop-scroll flex-1 overflow-y-auto p-4 md:p-8 bg-base-200/30">
                         <div class="max-w-7xl mx-auto">
 
                             <!-- Basic Info -->
@@ -1285,7 +1363,7 @@
 
                 <!-- Bottom Input Panel -->
                 <div
-                    class="bg-base-100/95 backdrop-blur-lg border-t border-base-200 p-4 pb-[max(1rem,env(safe-area-inset-bottom))] md:pb-24 shadow-[0_-4px_20px_rgba(0,0,0,0.05)] z-30 shrink-0">
+                    class="workshop-input-panel bg-base-100/95 backdrop-blur-lg border-t border-base-200 p-4 pb-[max(1rem,env(safe-area-inset-bottom))] md:pb-24 shadow-[0_-4px_20px_rgba(0,0,0,0.05)] z-30 shrink-0">
                     <div class="max-w-7xl mx-auto">
                         <!-- Progress Bar -->
                         <transition name="fade">
@@ -1399,7 +1477,7 @@
                     </div>
 
                     <ul ref="sidebarList" @scroll="handleSidebarScroll"
-                        class="flex-1 overflow-y-auto space-y-2 pr-1 custom-scrollbar overflow-x-hidden relative">
+                        class="workshop-sidebar-scroll flex-1 overflow-y-auto space-y-2 pr-1 custom-scrollbar overflow-x-hidden relative">
                         <!-- Top Spacer -->
                         <div :style="{ height: sidebarPaddingTop + 'px' }" class="w-full shrink-0"></div>
 
@@ -1725,8 +1803,8 @@
                             applyFontFamily(mainSettings.fontFamily);
 
                             // Sync API
-                            if (mainSettings.apiUrl) api.url = mainSettings.apiUrl;
-                            if (mainSettings.apiKey) api.key = mainSettings.apiKey;
+                            api.url = mainSettings.apiUrl || '';
+                            api.key = mainSettings.apiKey || '';
 
                             // Sync Image Gen
                             if (mainSettings.imageGenProviderId) options.imageGenProviderId = mainSettings.imageGenProviderId;
@@ -1757,7 +1835,7 @@
                             if (syncedModelType) activeModelType.value = syncedModelType;
 
                             // Update current active api.model
-                            api.model = options.customModels[activeModelType.value] || mainSettings.model || api.model;
+                            api.model = options.customModels[activeModelType.value] || mainSettings.model || '';
                         }
                     });
 
@@ -1809,24 +1887,33 @@
 
                 // Check if we also need to persist api config... API keys are not in `options` natively here.
                 // Assuming api url and key are static or initialized here.
-                const defaultApi = {
-                    url: 'https://sta1n.zeabur.app/v1',
-                    key: 'sk-Vk78S1r6mjBc2YpzFkzcTRMLohBf5jlam4YYeK8WSl4hTszN',
-                    model: 'gemini-3.1-pro-preview-high',
+                localStorage.removeItem('ai_chargen_api');
+                const api = reactive({
+                    url: '',
+                    key: '',
+                    model: '',
                     stream: true
+                });
+                const getApiBaseUrl = () => {
+                    const baseUrl = api.url.replace(/\/+$/, '');
+                    return baseUrl.endsWith('/v1') ? baseUrl : `${baseUrl}/v1`;
                 };
-
-                const savedApi = localStorage.getItem('ai_chargen_api');
-                const parsedSavedApi = savedApi ? JSON.parse(savedApi) : {};
-
-                const api = reactive({ ...defaultApi, ...parsedSavedApi });
-
-                // Make sure activeModelType mapping updates correctly
-                api.model = options.customModels[activeModelType.value] || api.model;
-
-                watch(api, (newVal) => {
-                    localStorage.setItem('ai_chargen_api', JSON.stringify(newVal));
-                }, { deep: true });
+                const requestWorkshopCompletion = (messages, { stream, temperature }) => {
+                    if (!String(api.url || '').trim()) throw new Error('请先填写当前 API 预设的地址');
+                    if (!String(api.key || '').trim()) throw new Error('请先填写当前 API 预设的 Key');
+                    if (!String(api.model || '').trim()) throw new Error('请先在主界面选择模型');
+                    const apiUrl = getApiBaseUrl();
+                    console.log('%c[Workshop AI Request]', 'color: #3b82f6; font-weight: bold;', { url: apiUrl, model: api.model });
+                    return fetch(`${apiUrl}/chat/completions`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${api.key}`
+                        },
+                        body: JSON.stringify({ model: api.model, messages, stream, temperature }),
+                        signal: abortController.value.signal
+                    });
+                };
 
                 const targetFields = ['name', 'description', 'personality', 'first_mes', 'creator_notes', 'system_prompt', 'post_history_instructions'];
 
@@ -2712,28 +2799,12 @@
                         // Or stream and buffer. Stream gives better feedback.
                         // Let's use the existing stream logic structure but adapted.
 
-                        const baseUrl = api.url.replace(/\/+$/, '');
-                        const apiUrl = baseUrl.endsWith('/v1') ? baseUrl : `${baseUrl}/v1`;
                         generationStatus.value = '正在等待API响应...';
 
-                        console.log('%c[Workshop AI Request]', 'color: #3b82f6; font-weight: bold;', { url: apiUrl, model: api.model });
-                        const response = await fetch(`${apiUrl}/chat/completions`, {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                                'Authorization': `Bearer ${api.key}`
-                            },
-                            body: JSON.stringify({
-                                model: api.model,
-                                messages: [
-                                    { role: 'system', content: systemPrompt },
-                                    { role: 'user', content: context + `\n\n用户修改指令：${finalPrompt}` }
-                                ],
-                                stream: true, // Use stream for UX
-                                temperature: 0.7 // Slightly lower temp for precision
-                            }),
-                            signal: abortController.value.signal
-                        });
+                        const response = await requestWorkshopCompletion([
+                            { role: 'system', content: systemPrompt },
+                            { role: 'user', content: context + `\n\n用户修改指令：${finalPrompt}` }
+                        ], { stream: true, temperature: 0.7 });
 
                         if (!response.ok) throw new Error('API Request Failed');
 
@@ -3846,28 +3917,12 @@ JSON 字段（世界书/正则脚本）必须输出为合法的 JSON 数组，**
                         }
 
                         try {
-                            const baseUrl = api.url.replace(/\/+$/, '');
-                            const apiUrl = baseUrl.endsWith('/v1') ? baseUrl : `${baseUrl}/v1`;
                             if (!isRetry) generationStatus.value = '正在等待API响应...';
 
-                            console.log('%c[Workshop AI Request]', 'color: #3b82f6; font-weight: bold;', { url: apiUrl, model: api.model });
-                            const response = await fetch(`${apiUrl}/chat/completions`, {
-                                method: 'POST',
-                                headers: {
-                                    'Content-Type': 'application/json',
-                                    'Authorization': `Bearer ${api.key}`
-                                },
-                                body: JSON.stringify({
-                                    model: api.model,
-                                    messages: [
-                                        { role: 'system', content: systemPrompt },
-                                        { role: 'user', content: `### 用户的描述\n${prompt.value}\n\n请开始生成。` }
-                                    ],
-                                    stream: api.stream,
-                                    temperature: 1
-                                }),
-                                signal: abortController.value.signal
-                            });
+                            const response = await requestWorkshopCompletion([
+                                { role: 'system', content: systemPrompt },
+                                { role: 'user', content: `### 用户的描述\n${prompt.value}\n\n请开始生成。` }
+                            ], { stream: api.stream, temperature: 1 });
 
                             if (!response.ok) {
                                 let errorDetail = '';
