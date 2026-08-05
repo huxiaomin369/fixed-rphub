@@ -288,11 +288,6 @@ createApp({
             content: `
 ### RP-Hub 1.7.6
 
-- 为总结模型提示词增加了处理前缀
-- 优化了总结模式记忆片段展示顺序
-- 优化了统计页面的UI
-
-本项目为全开源公益项目，严禁倒卖源码，二改需经作者授权
 
 #### 更新时间：07/16/23:09
                     `
@@ -10103,6 +10098,10 @@ year 2025, textless version, {{petite,loli}}, Petite figure, no text, The image 
         const buildImageGenErrorHtml = (message) =>
             '<div class="img-gen-error" style="width: auto; max-width: 100%; box-sizing: border-box; padding: 10px 14px; border: 1px solid rgba(239,68,68,0.4); background: rgba(254,226,226,0.4); border-radius: 12px; display: block; margin: 8px 0; box-shadow: 0 4px 14px rgba(148,163,184,0.06);"><span class="text-sm text-red-600">图片生成失败: ' + imgGenEscapeHtml(message) + '</span></div>';
 
+        // 全局递增占位符索引：避免"继续生成/重新生成"期间多轮生图循环
+        // 使用相同索引导致占位符字符串冲突、图片错位覆盖的竞态
+        let imgGenPlaceholderSeq = 0;
+
         const scheduleImageGenerationFromMessage = async (msg) => {
             console.log('[ImageGen] finding image generation triggers in assistant message...');
             if (!msg || typeof msg.content !== 'string' || !msg.content) return;
@@ -10118,7 +10117,7 @@ year 2025, textless version, {{petite,loli}}, Petite figure, no text, The image 
                 if (!prompt) return match;
                 hasMarker = true;
                 if (!promptIdxMap.has(prompt)) {
-                    promptIdxMap.set(prompt, prompts.length);
+                    promptIdxMap.set(prompt, imgGenPlaceholderSeq++);
                     prompts.push(prompt);
                 }
                 return buildImageGenPlaceholderHtml(promptIdxMap.get(prompt));
@@ -10134,7 +10133,7 @@ year 2025, textless version, {{petite,loli}}, Petite figure, no text, The image 
             scheduleChatHistorySave();
 
             for (let i = 0; i < prompts.length; i++) {
-                const placeholderHtml = buildImageGenPlaceholderHtml(i);
+                const placeholderHtml = buildImageGenPlaceholderHtml(promptIdxMap.get(prompts[i]));
                 let replacementHtml;
                 try {
                     const url = await generateSingleImage(prompts[i]);
