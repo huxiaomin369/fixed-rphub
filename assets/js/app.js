@@ -6658,7 +6658,11 @@ ${content}
                         }
 
                         const normalizedUsage = normalizeApiUsage(responseUsage);
-                        if (normalizedUsage.reported) lastContextTokens.value = normalizedUsage.inputTokens;
+                        if (normalizedUsage.reported) {
+                            lastContextTokens.value = normalizedUsage.inputTokens;
+                            // 写入当前角色卡：作为上下文压缩的触发依据（随角色卡持久化）
+                            if (currentCharacter.value) currentCharacter.value.contextTokens = normalizedUsage.inputTokens;
+                        }
                         recordApiUsage(responseUsage, {
                             type: activeToolDepth > 0 ? 'tool_continuation' : 'chat',
                             model: requestModel,
@@ -9601,7 +9605,8 @@ ${content}
                 mes_example: '',
                 uuid: generateUUID(),
                 createdAt: Date.now(),
-                uiTemplates: []
+                uiTemplates: [],
+                contextTokens: 0
             };
             editorTab.value = 'basic';
             showCharacterEditor.value = true;
@@ -10766,6 +10771,7 @@ year 2025, textless version, {{petite,loli}}, Petite figure, no text, The image 
                         regexScripts: [],
                         uiTemplates: Array.isArray(uiTemplates) ? uiTemplates.map(t => normalizeUiTemplate({ ...sanitizeUiTemplateImportEntry(t), id: generateUUID(), scope: 'character' })) : [],
                         recentGenerationTimes: [],
+                        contextTokens: 0,
                         uuid: generateUUID(),
                         createdAt: Date.now()
                     };
