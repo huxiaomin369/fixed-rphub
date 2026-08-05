@@ -6697,7 +6697,7 @@ ${content}
                             // -----------------------------
 
                             if (assistantMessage.content) {
-                                scheduleImageGenerationFromMessage(assistantMessage.content).catch((e) => {
+                                scheduleImageGenerationFromMessage(assistantMessage).catch((e) => {
                                     console.error('[ImageGen] Scheduler error:', e);
                                 });
                             }
@@ -10079,41 +10079,72 @@ year 2025, textless version, {{petite,loli}}, Petite figure, no text, The image 
             return imageUrl;
         };
 
-        const scheduleImageGenerationFromMessage = async (content) => {
+        const imgGenEscapeHtml = (unsafe) => {
+            if (!unsafe) return '';
+            return String(unsafe)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+        };
+
+        const buildImageGenPlaceholderHtml = (idx) =>
+            '<div class="img-gen-inline" data-gen-idx="' + idx + '" style="width: auto; height: auto; max-width: 100%; box-sizing: border-box; padding: 12px 16px; border: 1px dashed rgba(148,163,184,0.5); background: rgba(255,255,255,0.32); border-radius: 12px; display: block; margin: 8px 0; box-shadow: 0 4px 14px rgba(148,163,184,0.06);"><span class="img-gen-spinner" style="display: inline-block; width: 16px; height: 16px; border: 2px solid rgba(148,163,184,0.35); border-top-color: #6366f1; border-radius: 50%; vertical-align: -3px; margin-right: 8px; animation: img-gen-spin 0.8s linear infinite;"></span><span class="text-sm text-gray-500">图片生成中…</span></div>';
+
+        const buildImageGenResultHtml = (url) =>
+            '<div class="img-gen-message" style="width: auto; height: auto; max-width: 100%; box-sizing: border-box; padding: 2px; border: 1px solid rgba(255,255,255,0.58); background: rgba(255,255,255,0.32); border-radius: 12px; overflow: hidden; display: block; margin: 8px 0; box-shadow: 0 4px 14px rgba(148,163,184,0.06);"><img src="' + imgGenEscapeHtml(url) + '" alt="生成图片" style="max-width: 100%; height: auto; width: auto; display: block; object-fit: contain; border-radius: 9px; transition: transform 0.3s ease;"></div>';
+
+        const buildImageGenErrorHtml = (message) =>
+            '<div class="img-gen-error" style="width: auto; max-width: 100%; box-sizing: border-box; padding: 10px 14px; border: 1px solid rgba(239,68,68,0.4); background: rgba(254,226,226,0.4); border-radius: 12px; display: block; margin: 8px 0; box-shadow: 0 4px 14px rgba(148,163,184,0.06);"><span class="text-sm text-red-600">图片生成失败: ' + imgGenEscapeHtml(message) + '</span></div>';
+
+        const scheduleImageGenerationFromMessage = async (msg) => {
             console.log('[ImageGen] finding image generation triggers in assistant message...');
-            if (!content || typeof content !== 'string') return;
+            if (!msg || typeof msg.content !== 'string' || !msg.content) return;
+            const content = msg.content;
             const regex = /@image@([\s\S]*?)@imageEnd@/g;
             const prompts = [];
-            let match;
-            while ((match = regex.exec(content)) !== null) {
-                const prompt = match[1].trim();
-                if (prompt && !prompts.includes(prompt)) {
+            const promptIdxMap = new Map();
+            let hasMarker = false;
+
+            // 将每个标记替换为带索引的占位符（同一提示词去重后共享同一索引）
+            const newContent = content.replace(regex, (match, p1) => {
+                const prompt = (p1 || '').trim();
+                if (!prompt) return match;
+                hasMarker = true;
+                if (!promptIdxMap.has(prompt)) {
+                    promptIdxMap.set(prompt, prompts.length);
                     prompts.push(prompt);
                 }
-            }
-            if (prompts.length === 0) return;
+                return buildImageGenPlaceholderHtml(promptIdxMap.get(prompt));
+            });
+            if (!hasMarker || prompts.length === 0) return;
 
             console.log('[ImageGen] Found', prompts.length, 'prompts in assistant message');
 
+            // 消息可能已被删除/切换角色，校验仍在聊天记录中
+            if (!chatHistory.value.includes(msg)) return;
+
+            msg.content = newContent;
+            scheduleChatHistorySave();
+
             for (let i = 0; i < prompts.length; i++) {
+                const placeholderHtml = buildImageGenPlaceholderHtml(i);
+                let replacementHtml;
                 try {
                     const url = await generateSingleImage(prompts[i]);
-                    if (!url) continue;
-                    chatHistory.value.push({
-                        role: 'assistant',
-                        name: currentCharacter.value?.name || '',
-                        content: `<div class="img-gen-message" style="width: auto; height: auto; max-width: 100%; box-sizing: border-box; padding: 2px; border: 1px solid rgba(255,255,255,0.58); background: rgba(255,255,255,0.32); border-radius: 12px; overflow: hidden; display: inline-flex; justify-content: center; align-items: center; box-shadow: 0 4px 14px rgba(148,163,184,0.06);"><img src="${url}" alt="生成图片" style="max-width: 100%; height: auto; width: auto; display: block; object-fit: contain; border-radius: 9px; transition: transform 0.3s ease;"></div>`,
-                        isImageGen: true,
-                        skipReveal: true,
-                        shouldAnimate: true
-                    });
-                    scheduleChatHistorySave();
-                    await nextTick();
-                    await scrollChatToBottom();
+                    replacementHtml = url
+                        ? buildImageGenResultHtml(url)
+                        : buildImageGenErrorHtml('未获取到图片URL（可能未配置图片生成API Key）');
                 } catch (e) {
                     console.error('[ImageGen] Failed:', e.message || e);
-                    showToast(`[图片生成失败]: ${e.message || e}`, 'error', 4000);
+                    replacementHtml = buildImageGenErrorHtml(e.message || String(e));
                 }
+                // 生成期间消息可能被删除或内容被修改，占位符可能已不存在
+                if (!chatHistory.value.includes(msg)) return;
+                if (!msg.content.includes(placeholderHtml)) continue;
+                msg.content = msg.content.split(placeholderHtml).join(replacementHtml);
+                scheduleChatHistorySave();
             }
         };
 
@@ -10227,7 +10258,7 @@ year 2025, textless version, {{petite,loli}}, Petite figure, no text, The image 
                 constant: true,
                 enabled: false, // Default closed
                 scope: 'global',
-                position: 'at_depth',
+                position: 'before_char',
                 depth: 4,
                 order: 100,
                 useProbability: false,
