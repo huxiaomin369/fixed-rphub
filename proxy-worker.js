@@ -9,6 +9,7 @@ const LLM_ENDPOINTS = {
   'opencode': 'https://opencode.ai',
   'sensenova': 'https://token.sensenova.cn',
   'mimo': 'https://api.xiaomimimo.com',
+  'agnes': 'https://apihub.agnes-ai.com',
   // Add more providers as needed
 };
 

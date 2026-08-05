@@ -1086,7 +1086,7 @@
 
                                     </div>
                                 </transition>
-                                <div class="relative">
+                                <div class="relative flex items-center gap-2">
                                     <!-- Model Selector Popup -->
                                     <transition enter-active-class="transition-all duration-150 ease-out"
                                         enter-from-class="opacity-0 translate-y-2 scale-95"
@@ -1135,6 +1135,14 @@
                                         </div>
                                     </transition>
 
+                                    <!-- Context Usage Badge (left of model button) -->
+                                    <div v-if="lastContextTokens !== null"
+                                        class="flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] md:text-xs font-mono bg-white/50 backdrop-blur-sm border border-white/50 shadow-sm text-gray-500"
+                                        :title="`当前上下文 ${formatTokenK(lastContextTokens)} / 上下文压缩界限 ${formatTokenK(settings.maxContextSize)}`">
+                                        <span class="text-teal-600 font-bold">{{ formatTokenK(lastContextTokens) }}</span>
+                                        <span class="opacity-60">/</span>
+                                        <span>{{ formatTokenK(settings.maxContextSize) }}</span>
+                                    </div>
                                     <!-- Current Model Toggle Button -->
                                     <button @click.stop="showChatModelSelector = !showChatModelSelector"
                                         class="px-3.5 py-1.5 rounded-full text-[10px] md:text-xs font-bold transition-all duration-300 flex items-center bg-white hover:bg-gray-50 border border-gray-200 shadow-sm active:scale-95 text-primary-600"
@@ -1158,13 +1166,6 @@
                                         </svg>
                                         模型
                                     </button>
-                                    <div v-if="lastContextTokens !== null"
-                                        class="flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] md:text-xs font-mono bg-white/50 backdrop-blur-sm border border-white/50 shadow-sm text-gray-500"
-                                        :title="`当前上下文 ${formatTokenCount(lastContextTokens)} / 上限 ${formatTokenCount(settings.maxContextSize)}`">
-                                        <span class="text-teal-600 font-bold">{{ formatTokenCount(lastContextTokens) }}</span>
-                                        <span class="opacity-60">/</span>
-                                        <span>{{ formatTokenCount(settings.maxContextSize) }}</span>
-                                    </div>
                                 </div>
                             </div>
                         </div>
