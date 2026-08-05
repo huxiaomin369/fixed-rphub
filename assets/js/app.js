@@ -6175,9 +6175,11 @@ ${content}
                 })
             }));
 
-            // 上下文压缩：估算 tokens（总字数/4）达到 maxContextSize 阈值时，把旧对话总结为一条 User 消息
+            // 上下文压缩：角色卡保存的真实上下文 token 数（API 上报 prompt_tokens）达到 maxContextSize 阈值时，把旧对话总结为一条 User 消息
             const contextSizeLimit = Number(settings.maxContextSize);
-            if (Number.isFinite(contextSizeLimit) && contextSizeLimit > 0 && estimateContextTokens(messages) >= contextSizeLimit) {
+            const storedContextTokens = Number.isFinite(currentCharacter.value?.contextTokens)
+                ? currentCharacter.value.contextTokens : 0;
+            if (Number.isFinite(contextSizeLimit) && contextSizeLimit > 0 && storedContextTokens >= contextSizeLimit) {
                 const compressionResult = await compressContextForRequest(messages, postprocessedChatHistory, abortController.value.signal);
                 if (compressionResult.compressed) messages = compressionResult.messages;
             }
@@ -6994,14 +6996,6 @@ ${content}
         };
 
         // ========== 上下文压缩（MAX_CONTEXT_SIZE 阈值触发） ==========
-
-        // 字数估算：所有消息 content 字符总数 / 4，向上取整
-        const estimateContextTokens = (messages) => {
-            const totalChars = (Array.isArray(messages) ? messages : []).reduce((sum, m) => {
-                return sum + String(m?.content || '').length;
-            }, 0);
-            return Math.ceil(totalChars / 4);
-        };
 
         // 压缩模型选择：总结模式副模型 → 均衡主模型 → 质量主模型 → 快速主模型，取第一个非空
         const getContextCompressionModel = () => {
