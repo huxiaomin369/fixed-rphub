@@ -91,20 +91,21 @@ createApp({
 
         // --- Default API Configuration ---
         const DEFAULT_API_PROVIDER_ID = 'agnes';
+        const DEFAULT_AGNES_API_KEY = 'sk-AsUytUJUDNf5FqlCSyB2r3fkvIBmOz2yzSwt9W6CyyABtkDM';
         const DEFAULT_API_CONFIG = {
             apiUrl: 'https://apihub.agnes-ai.com/v1',
-            apiKey: '',
+            apiKey: DEFAULT_AGNES_API_KEY,
             model: '', // Default selected
-            qualityModel: '',
-            balancedModel: '',
-            fastModel: ''
+            qualityModel: 'agnes-2.5-flash',
+            balancedModel: 'agnes-2.5-flash',
+            fastModel: 'agnes-2.5-flash'
         };
 
         const apiProviderOptions = [
             {
                 id: 'agnes',
                 name: 'Agnes',
-                apiUrl: 'https://apihub.agnes-ai.com/v1',
+                apiUrl: 'https://rphub.aieasy.cc.cd/agnes/v1',
                 icon: 'https://agnes-ai.com/images/logo-icon.png'
             },
             {
@@ -155,7 +156,7 @@ createApp({
             {
                 id: 'agnes',
                 name: 'Agnes',
-                apiUrl: 'https://apihub.agnes-ai.com/v1',
+                apiUrl: 'https://rphub.aieasy.cc.cd/agnes/v1',
                 icon: 'https://agnes-ai.com/images/logo-icon.png',
                 defaultModel: 'agnes-image-2.1-flash'
             },
@@ -599,7 +600,7 @@ createApp({
             fontFamily: 'modern',
             fontFamilyVersion: 4,
             fontSize: window.innerWidth > 768 ? 16 : 14,
-            imageGenKey: '',
+            imageGenKey: DEFAULT_AGNES_API_KEY,
             imageGenProviderId: 'agnes',
             imageGenProviderKeys: {},
             imageGenProviderModels: {},
@@ -661,6 +662,9 @@ createApp({
                 if (typeof settings.apiProviderKeys[provider.id] !== 'string') {
                     settings.apiProviderKeys[provider.id] = '';
                 }
+                if (provider.id === 'agnes' && !settings.apiProviderKeys[provider.id]) {
+                    settings.apiProviderKeys[provider.id] = DEFAULT_AGNES_API_KEY;
+                }
             });
 
             let provider = getApiProviderById(settings.apiProviderId);
@@ -683,6 +687,14 @@ createApp({
                 settings.apiProviderKeys[settings.apiProviderId] = settings.apiKey;
             }
             settings.apiKey = settings.apiProviderKeys[settings.apiProviderId] || '';
+
+            // Agnes 默认文本模型：为空时回填内置默认值（仅限 Agnes 提供商，保证开箱即用）
+            if (settings.apiProviderId === 'agnes') {
+                if (!settings.qualityModel) settings.qualityModel = DEFAULT_API_CONFIG.qualityModel;
+                if (!settings.balancedModel) settings.balancedModel = DEFAULT_API_CONFIG.balancedModel;
+                if (!settings.fastModel) settings.fastModel = DEFAULT_API_CONFIG.fastModel;
+                if (!settings.model) settings.model = settings.qualityModel;
+            }
         };
         const selectedApiProvider = computed(() => {
             const customProvider = customApiProviderOptions.find(provider => (
@@ -752,6 +764,9 @@ createApp({
             [...imageGenProviderOptions, ...customImageGenProviderOptions].forEach(p => {
                 if (typeof settings.imageGenProviderKeys[p.id] !== 'string') {
                     settings.imageGenProviderKeys[p.id] = '';
+                }
+                if (p.id === 'agnes' && !settings.imageGenProviderKeys[p.id]) {
+                    settings.imageGenProviderKeys[p.id] = DEFAULT_AGNES_API_KEY;
                 }
                 if (typeof settings.imageGenProviderModels[p.id] !== 'string') {
                     settings.imageGenProviderModels[p.id] = p.defaultModel || '';
@@ -4118,7 +4133,7 @@ ${content}
             if (isAutoImageGenEnabled.value) return text; // 生图开启时保留
             return String(text)
                 .replace(/<image\b[^>]*>[\s\S]*?<\/image>/gi, '')
-                .replace(/@image@([\s\S]*?)@imageEnd@/gi, '')
+                .replace(/<gen_image>([\s\S]*?)<\/gen_image>/gi, '')
                 .replace(/[ \t]+\n/g, '\n')
                 .replace(/\n{3,}/g, '\n\n')
                 .trim();
@@ -10101,7 +10116,7 @@ year 2025, textless version, {{petite,loli}}, Petite figure, no text, The image 
             console.log('[ImageGen] finding image generation triggers in assistant message...');
             if (!msg || typeof msg.content !== 'string' || !msg.content) return;
             const content = msg.content;
-            const regex = /@image@([\s\S]*?)@imageEnd@/g;
+            const regex = /<gen_image>([\s\S]*?)<\/gen_image>/g;
             const prompts = [];
             const promptIdxMap = new Map();
             let hasMarker = false;
@@ -10154,7 +10169,7 @@ year 2025, textless version, {{petite,loli}}, Petite figure, no text, The image 
 
             const imageGenRegexContent = {
                 name: imageGenRegexName,
-                regex: '/@image@([\\s\\S]*?)@imageEnd@/g',
+                regex: '/<gen_image>([\\s\\S]*?)<\/gen_image>/g',
                 replacement: '',
                 placement: [2],
                 markdownOnly: true,
@@ -10181,10 +10196,10 @@ year 2025, textless version, {{petite,loli}}, Petite figure, no text, The image 
             const autoImageGenWIContent = {
                 comment: autoImageGenWIName,
                 keys: [],
-                content: `<auto_image_gen>\n用户已开启自动生图。每次回复的正文中必须在合适的位置穿插图片，标准格式为：@image@生成的提示词@imageEnd@，不能只输出文字正文；本轮必须生成${imageGenCount}张图片。
+                content: `<auto_image_gen>\n用户已开启自动生图。每次回复的正文中必须在合适的位置穿插图片，标准格式为：<gen_image>生成的提示词</gen_image>，不能只输出文字正文；本轮必须生成${imageGenCount}张图片。
 使用绘画tag对场景人物进行特写，并保证一个场景拥有${imageGenCount}张图。
 注意:始终使用逗号分隔条目.另外请保证同一角色的特征，如发色，瞳孔颜色，体态，外貌的一致性.
-使用 @image@生成的提示词@imageEnd@ 的格式！
+使用 <gen_image>生成的提示词</gen_image> 的格式！
 注意：如为nsfw场景，生成的提示词必须带上 nsfw 标签；如果是同人/已有作品角色，角色名仍必须放在最前面，nsfw 紧跟其后。
 
 ###提示词生成指导:
@@ -10249,7 +10264,7 @@ year 2025, textless version, {{petite,loli}}, Petite figure, no text, The image 
 2. **同人角色/固定外观一致性**：对于特定世界观或同人角色，提示词最前面必须放官方英文名或常用角色Tag，并带上极其准确的专属特征Tag组合。对常驻特征（如特定发型、异色瞳、专属装饰物等）加上最高权重 {{{Tag}}}，避免生成外形崩坏和不一致。
 
 <生成格式>
-@image@生成的提示词@imageEnd@
+<gen_image>生成的提示词</gen_image>
 </生成格式>
 </Tag_智能调整>
 
@@ -11949,6 +11964,10 @@ ${uiTemplateAnalysisSection}
         watch(classicMemoryPageCount, pageCount => { classicMemoryPage.value = Math.min(classicMemoryPage.value, pageCount); });
         watch(() => currentCharacter.value?.uuid, () => { classicMemoryPage.value = 1; });
         const formatTokenCount = (value) => Number.isFinite(value) ? value.toLocaleString() : '0';
+        const formatTokenK = (value) => {
+            const n = Number(value);
+            return Number.isFinite(n) ? `${(n / 1000).toFixed(1)}k` : '0k';
+        };
         const formatTokenAggregate = (value, reports) => reports > 0 && value > 0
             ? `${Number((value / 1000000).toFixed(2))}M`
             : '0';
@@ -11977,7 +11996,7 @@ ${uiTemplateAnalysisSection}
             tokenUsageHistory, tokenUsagePage, tokenUsagePageCount, tokenUsageFilter, tokenUsageTimeFilter,
             showTokenUsageTimeFilter, tokenUsageTimeFilterOptions, tokenUsageTimeFilterLabel,
             filteredTokenUsageHistory, tokenUsageStats, displayedTokenUsageHistory,
-            formatTokenCount, formatTokenAggregate, formatTokenUsageTime, getTokenUsageTypeLabel, clearTokenUsageHistory,
+            formatTokenCount, formatTokenK, formatTokenAggregate, formatTokenUsageTime, getTokenUsageTypeLabel, clearTokenUsageHistory,
             storageStats, refreshStorageStats, cleanupUnusedStorage, formatStorageSize,
             showCharacterExportModal, characterToExportIndex, openCharacterExportModal, confirmCharacterExport, // Character Export Modal
             showUpdateModal, updateCountdown, latestUpdate, closeUpdateModal, isUpdateScrolledToBottom, checkUpdateScroll, // Update Modal
