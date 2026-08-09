@@ -6410,7 +6410,7 @@ ${content}
             (Array.isArray(targetMessages) ? targetMessages : []).forEach(m => {
                 requestMessages.push({
                     role: m.role === 'user' ? 'user' : 'assistant',
-                    content: `【待压缩对话】\n${stripImageGenHtmlFromContent(m.content)}`
+                    content: `【待压缩对话】\n${stripImageGenHtmlFromContent(parseCot(m.content || '').main)}`
                 });
             });
 
@@ -10099,7 +10099,7 @@ ${uiTemplateAnalysisSection}
             const sorted = [...source].reverse();
             const start = (conversationPage.value - 1) * LIST_PAGE_SIZE;
             return sorted.slice(start, start + LIST_PAGE_SIZE)
-                .map(m => ({ ...m, content: stripImageGenHtmlFromContent(m.content) }));
+                .map(m => ({ ...m, content: stripImageGenHtmlFromContent(parseCot(m.content || '').main) }));
         });
         const conversationPageCount = computed(() => {
             const state = conversationBrowseState.value;
@@ -10115,8 +10115,8 @@ ${uiTemplateAnalysisSection}
             return sorted.slice(start, start + LIST_PAGE_SIZE)
                 .map(turn => ({
                     ...turn,
-                    user: turn.user ? { ...turn.user, content: stripImageGenHtmlFromContent(turn.user.content) } : null,
-                    assistant: turn.assistant ? { ...turn.assistant, content: stripImageGenHtmlFromContent(turn.assistant.content) } : null
+                    user: turn.user ? { ...turn.user, content: stripImageGenHtmlFromContent(parseCot(turn.user.content || '').main) } : null,
+                    assistant: turn.assistant ? { ...turn.assistant, content: stripImageGenHtmlFromContent(parseCot(turn.assistant.content || '').main) } : null
                 }));
         });
         const conversationStats = computed(() => {
