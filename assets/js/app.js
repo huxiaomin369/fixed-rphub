@@ -6403,7 +6403,7 @@ ${content}
             if (previousSummary) {
                 requestMessages.push({
                     role: 'user',
-                    content: `【历史背景：这是上一版总结，仅作为理解基础。新总结必须完整承接其中所有信息，并纳入下面新对话的内容。】\n${previousSummary}`
+                    content: `【历史背景：这是上一版总结，仅作为理解基础。新总结必须完整承接其中所有信息，并纳入下面新对话的内容。】\n${stripImageGenHtmlFromContent(previousSummary)}`
                 });
             }
 
@@ -6449,7 +6449,7 @@ ${content}
                 model,
                 detail: '上下文压缩'
             });
-            return trimMemoryText(summary, 4000);
+            return trimMemoryText(stripImageGenHtmlFromContent(summary), 4000);
         };
 
         // 用摘要消息替换可压缩的旧历史：在首条被替换消息的位置插入摘要，跳过其余被替换消息
@@ -10089,7 +10089,7 @@ ${uiTemplateAnalysisSection}
         });
         const contextSummaryCard = computed(() => {
             const state = conversationBrowseState.value;
-            return state.compressed ? { summary: String(contextSummaryCache.value.summary), endFloor: state.compressEndFloor } : null;
+            return state.compressed ? { summary: stripImageGenHtmlFromContent(String(contextSummaryCache.value.summary)), endFloor: state.compressEndFloor } : null;
         });
         const displayedRetainedFloors = computed(() => {
             const state = conversationBrowseState.value;
