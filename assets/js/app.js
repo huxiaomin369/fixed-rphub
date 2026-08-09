@@ -10098,7 +10098,8 @@ ${uiTemplateAnalysisSection}
                 : [];
             const sorted = [...source].reverse();
             const start = (conversationPage.value - 1) * LIST_PAGE_SIZE;
-            return sorted.slice(start, start + LIST_PAGE_SIZE);
+            return sorted.slice(start, start + LIST_PAGE_SIZE)
+                .map(m => ({ ...m, content: stripImageGenHtmlFromContent(m.content) }));
         });
         const conversationPageCount = computed(() => {
             const state = conversationBrowseState.value;
@@ -10111,7 +10112,12 @@ ${uiTemplateAnalysisSection}
             const turns = buildConversationTurnSnapshot(chatHistory.value, { includeSystem: false }).turns;
             const sorted = [...turns].reverse();
             const start = (conversationPage.value - 1) * LIST_PAGE_SIZE;
-            return sorted.slice(start, start + LIST_PAGE_SIZE);
+            return sorted.slice(start, start + LIST_PAGE_SIZE)
+                .map(turn => ({
+                    ...turn,
+                    user: turn.user ? { ...turn.user, content: stripImageGenHtmlFromContent(turn.user.content) } : null,
+                    assistant: turn.assistant ? { ...turn.assistant, content: stripImageGenHtmlFromContent(turn.assistant.content) } : null
+                }));
         });
         const conversationStats = computed(() => {
             const snapshot = buildConversationTurnSnapshot(chatHistory.value, { includeSystem: false });
