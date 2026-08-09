@@ -1,4 +1,4 @@
-const { app, BrowserWindow, session } = require('electron');
+const { app, BrowserWindow, session, Menu } = require('electron');
 const path = require('node:path');
 
 const isDev = !app.isPackaged;
@@ -43,6 +43,7 @@ function createWindow() {
 }
 
 app.whenReady().then(() => {
+  Menu.setApplicationMenu(null);
   setupCsp();
   createWindow();
 
