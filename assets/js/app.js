@@ -92,6 +92,7 @@ createApp({
         // --- Default API Configuration ---
         const DEFAULT_API_PROVIDER_ID = 'agnes';
         const DEFAULT_AGNES_API_KEY = 'sk-AsUytUJUDNf5FqlCSyB2r3fkvIBmOz2yzSwt9W6CyyABtkDM';
+        const DEFAULT_SENSENOVA_API_KEY = 'sk-HxabHoNNm7vpAOKgZI3oHUXPTMr3NQAU';
         const DEFAULT_API_CONFIG = {
             apiUrl: 'https://apihub.agnes-ai.com/v1',
             apiKey: DEFAULT_AGNES_API_KEY,
@@ -109,10 +110,10 @@ createApp({
                 icon: 'https://agnes-ai.com/images/logo-icon.png'
             },
             {
-                id: 'sta1n',
-                name: 'STA1N API',
-                apiUrl: 'https://cdn.sta1n.cn/v1',
-                icon: 'https://img.cdn1.vip/i/69c18cc07538b_1774292160.webp'
+                id: 'opencpde_go',
+                name: 'OpenCode Go',
+                apiUrl: 'https://rphub.aieasy.cc.cd/opencode/zen/go/v1',
+                icon: 'https://opencode.ai/favicon-v3.ico'
             },
             {
                 id: 'deepseek',
@@ -133,8 +134,8 @@ createApp({
                 icon: 'https://siliconflow.cn/favicon.ico'
             },
             {
-                id: 'opencode',
-                name: 'OpenCode',
+                id: 'opencode_zen',
+                name: 'OpenCode Zen',
                 apiUrl: 'https://rphub.aieasy.cc.cd/opencode/zen/v1',
                 icon: 'https://opencode.ai/favicon-v3.ico'
             },
@@ -599,7 +600,7 @@ createApp({
             fontFamilyVersion: 4,
             fontSize: window.innerWidth > 768 ? 16 : 14,
             imageGenKey: DEFAULT_AGNES_API_KEY,
-            imageGenProviderId: 'agnes',
+            imageGenProviderId: 'sensenova',
             imageGenProviderKeys: {},
             imageGenProviderModels: {},
             customImageGenUrl: '',
@@ -607,7 +608,7 @@ createApp({
             imageStyle: 'vertical',
             customImageArtists: '',
             imageSize: '竖图',
-            imageGenCount: 2,
+            imageGenCount: 1,
             qualityModel: DEFAULT_API_CONFIG.qualityModel,
             balancedModel: DEFAULT_API_CONFIG.balancedModel,
             fastModel: DEFAULT_API_CONFIG.fastModel,
@@ -767,13 +768,16 @@ createApp({
                 if (p.id === 'agnes' && !settings.imageGenProviderKeys[p.id]) {
                     settings.imageGenProviderKeys[p.id] = DEFAULT_AGNES_API_KEY;
                 }
+                if (p.id === 'sensenova' && !settings.imageGenProviderKeys[p.id]) {
+                    settings.imageGenProviderKeys[p.id] = DEFAULT_SENSENOVA_API_KEY;
+                }
                 if (typeof settings.imageGenProviderModels[p.id] !== 'string') {
                     settings.imageGenProviderModels[p.id] = p.defaultModel || '';
                 }
             });
             const provider = getImageGenProviderById(settings.imageGenProviderId);
             if (!provider) {
-                settings.imageGenProviderId = 'agnes';
+                settings.imageGenProviderId = 'sensenova';
             }
         };
 
@@ -791,12 +795,12 @@ createApp({
         });
 
         const imageGenToken = computed(() => {
-            const providerId = settings.imageGenProviderId || 'agnes';
+            const providerId = settings.imageGenProviderId || 'sensenova';
             return (settings.imageGenProviderKeys[providerId] || '').trim();
         });
 
         const imageGenModel = computed(() => {
-            const providerId = settings.imageGenProviderId || 'agnes';
+            const providerId = settings.imageGenProviderId || 'sensenova';
             return settings.imageGenProviderModels[providerId] || '';
         });
 
