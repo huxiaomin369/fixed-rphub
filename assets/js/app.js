@@ -8228,14 +8228,14 @@ year 2025, textless version, {{petite,loli}}, Petite figure, no text, The image 
         const buildImageGenErrorHtml = (message) =>
             '<div class="img-gen-error" style="width: auto; max-width: 100%; box-sizing: border-box; padding: 10px 14px; border: 1px solid rgba(239,68,68,0.4); background: rgba(254,226,226,0.4); border-radius: 12px; display: block; margin: 8px 0; box-shadow: 0 4px 14px rgba(148,163,184,0.06);"><span class="text-sm text-red-600">图片生成失败: ' + imgGenEscapeHtml(message) + '</span></div>';
 
-        // 发送给 API 前剥离生成图片的 HTML 块，替换为简短标记：
-        // 避免过期图片 URL 与超长内联样式占用上下文 token（存储与渲染层保持原样，不受影响）
+        // 发送给 API 前剥离生成图片的 HTML 块，直接删除为空字符串：
+        // 避免过期图片 URL、超长内联样式与标记文本占用上下文 token（存储与渲染层保持原样，不受影响）
         const stripImageGenHtmlFromContent = (content) => {
             if (typeof content !== 'string' || !content) return content;
             return content
-                .replace(/<div class="img-gen-message"[\s\S]*?<\/div>/g, '[图片已生成]')
-                .replace(/<div class="img-gen-inline"[\s\S]*?<\/div>/g, '[图片生成中]')
-                .replace(/<div class="img-gen-error"[\s\S]*?<\/div>/g, '[图片生成失败]');
+                .replace(/<div class="img-gen-message"[\s\S]*?<\/div>/g, '')
+                .replace(/<div class="img-gen-inline"[\s\S]*?<\/div>/g, '')
+                .replace(/<div class="img-gen-error"[\s\S]*?<\/div>/g, '');
         };
 
         // 全局递增占位符索引：避免"继续生成/重新生成"期间多轮生图循环
