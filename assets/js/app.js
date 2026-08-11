@@ -8786,6 +8786,208 @@ year 2025, textless version, {{petite,loli}}, Petite figure, no text, The image 
             editingWorldInfo.data.keys = parseWorldInfoKeysText(worldInfoKeysText.value, editingWorldInfo.data.useRegex);
         };
 
+        const parseExternalCardData = async (rawData, avatarUrl) => {
+            console.log('Processing Raw Data:', rawData);
+            let charData = rawData;
+            let characterBook = null;
+            let regexScripts = null;
+            let uiTemplates = null;
+
+            // --- External Card Data Structure Parsing ---
+
+            // Wrapped cards store the actual character fields in a 'data' object.
+            if (rawData.data) {
+                charData = rawData.data;
+            }
+
+            const discardRemovedCardFields = (target) => {
+                if (!target || typeof target !== 'object') return;
+                [
+                    'mes_example',
+                    'system_prompt',
+                    'post_history_instructions',
+                    'alternate_greetings',
+                    'tags',
+                    'creator',
+                    'character_version',
+                    'spec',
+                    'spec_version'
+                ].forEach(field => delete target[field]);
+                if (target.extensions && typeof target.extensions === 'object') {
+                    delete target.extensions.world;
+                    delete target.extensions.depth_prompt;
+                }
+            };
+            discardRemovedCardFields(rawData);
+            discardRemovedCardFields(rawData.data);
+            discardRemovedCardFields(charData);
+
+            // --- Extract Core Character Fields ---
+            // External cards may use specific field names. We map them to our internal structure.
+            // Priority: V2 fields > V1 fields > Fallbacks
+
+            const name = charData.name || charData.char_name || 'Unknown';
+            const description = charData.description || charData.char_persona || '';
+            const personality = charData.personality || '';
+            const first_mes = charData.first_mes || '';
+            const creator_notes = charData.creator_notes || charData.creatorcomment || charData.creator_comment || '';
+
+            // --- Extract World Info (Character Book) ---
+            // In V2, this is explicitly 'character_book'
+            if (charData.character_book) {
+                characterBook = charData.character_book;
+            }
+            // Fallback for V1 or loose JSONs
+            else if (rawData.character_book) {
+                characterBook = rawData.character_book;
+            }
+
+            // --- Extract Regex Scripts ---
+            // In V2-compatible cards, regex scripts are often in 'extensions.regex_scripts'
+            if (charData.extensions && charData.extensions.regex_scripts) {
+                regexScripts = charData.extensions.regex_scripts;
+            }
+            // Check root extensions as fallback
+            else if (rawData.extensions && rawData.extensions.regex_scripts) {
+                regexScripts = rawData.extensions.regex_scripts;
+            }
+            // Direct legacy keys
+            else if (charData.regex_scripts || rawData.regex_scripts) {
+                regexScripts = charData.regex_scripts || rawData.regex_scripts;
+            }
+
+            uiTemplates = charData.uiTemplates
+                || charData.ui_templates
+                || rawData.uiTemplates
+                || rawData.ui_templates
+                || charData.extensions?.ui_templates
+                || charData.extensions?.rp_hub_ui_templates
+                || rawData.extensions?.ui_templates
+                || rawData.extensions?.rp_hub_ui_templates
+                || null;
+
+            const char = {
+                name,
+                description,
+                first_mes,
+                avatar: avatarUrl || defaultAvatar,
+                personality,
+                creator_notes,
+                worldInfo: [],
+                regexScripts: [],
+                uiTemplates: Array.isArray(uiTemplates) ? uiTemplates.map(t => normalizeUiTemplate({ ...sanitizeUiTemplateImportEntry(t), id: generateUUID(), scope: 'character' })) : [],
+                recentGenerationTimes: [],
+                contextTokens: 0,
+                uuid: generateUUID(),
+                createdAt: Date.now()
+            };
+
+            // --- Process World Info Entries ---
+            let entries = [];
+            if (characterBook) {
+                if (Array.isArray(characterBook.entries)) {
+                    entries = characterBook.entries;
+                } else if (typeof characterBook.entries === 'object' && characterBook.entries !== null) {
+                    // Handle object-based entries from some exports (like the user's file)
+                    entries = Object.values(characterBook.entries);
+                } else if (Array.isArray(characterBook)) {
+                    // Legacy array format
+                    entries = characterBook;
+                }
+            }
+
+            if (entries.length > 0) {
+                char.worldInfo = entries
+                    .map(entry => normalizeWorldInfoEntry({ ...entry, scope: 'character' }))
+                    .filter(entry => entry.scope !== 'global');
+                console.log(`Imported and normalized ${char.worldInfo.length} World Info entries.`);
+            }
+
+            // --- Process Regex Scripts ---
+            if (Array.isArray(regexScripts)) {
+                char.regexScripts = regexScripts.map(script => {
+                    // Preserve ALL original external fields completely
+                    const normalized = {
+                        ...script, // Keep all original fields intact
+                    };
+
+                    // Add normalized fields ONLY if they don't exist
+                    // Common external fields: scriptName, findRegex, replaceString, trimStrings,
+                    // disabled, markdownOnly, promptOnly, runOnEdit, substituteRegex
+                    if (!normalized.name && script.scriptName) {
+                        normalized.name = script.scriptName;
+                    }
+                    if (!normalized.name) {
+                        normalized.name = 'Regex Script';
+                    }
+
+                    // Keep both findRegex (external standard) and regex (legacy)
+                    if (!normalized.regex && script.findRegex) {
+                        normalized.regex = script.findRegex;
+                    }
+                    if (!normalized.regex) {
+                        normalized.regex = '';
+                    }
+
+                    // Parse /pattern/flags format if present
+                    if (normalized.regex.startsWith('/') && normalized.regex.lastIndexOf('/') > 0) {
+                        const lastSlash = normalized.regex.lastIndexOf('/');
+                        const potentialFlags = normalized.regex.substring(lastSlash + 1);
+                        // Simple flags validation
+                        if (/^[gimsuy]*$/.test(potentialFlags)) {
+                            normalized.flags = potentialFlags;
+                            normalized.regex = normalized.regex.substring(1, lastSlash);
+                        }
+                    }
+
+                    // Keep both replaceString (external standard) and replacement (legacy)
+                    if (!normalized.replacement && script.replaceString) {
+                        normalized.replacement = script.replaceString;
+                    }
+
+                    // Preserve flags (if not already set by parsing)
+                    if (!normalized.flags && script.regexFlags) {
+                        normalized.flags = script.regexFlags;
+                    }
+                    if (!normalized.flags) {
+                        normalized.flags = 'g';
+                    }
+
+                    // CRITICAL: Convert ST's 'disabled' field to 'enabled'
+                    // ST uses: disabled=true (禁用), disabled=false/undefined (启用)
+                    // We use: enabled=true (启用), enabled=false (禁用)
+                    if (!normalized.hasOwnProperty('enabled')) {
+                        // If script has 'disabled' field, use it; otherwise default to enabled
+                        normalized.enabled = script.hasOwnProperty('disabled') ? !script.disabled : true;
+                    }
+
+                    // New Fields
+                    if (!normalized.placement) normalized.placement = script.placement || [1, 2];
+                    if (normalized.markdownOnly === undefined) normalized.markdownOnly = script.markdownOnly || false;
+                    if (normalized.promptOnly === undefined) normalized.promptOnly = script.promptOnly || false;
+                    if (normalized.runOnEdit === undefined) normalized.runOnEdit = script.runOnEdit || false;
+                    if (normalized.minDepth === undefined) normalized.minDepth = script.minDepth || null;
+                    if (normalized.maxDepth === undefined) normalized.maxDepth = script.maxDepth || null;
+
+                    return normalizeRegexScript({ ...normalized, scope: 'character' }, 'character');
+                }).filter(script => script.scope !== 'global');
+
+                // Log imported regex scripts status
+                const enabledScripts = char.regexScripts.filter(s => s.enabled !== false);
+                console.log(`✓ Imported ${char.regexScripts.length} Regex scripts.`);
+                if (enabledScripts.length > 0) {
+                    console.log(`✓ Default enabled regex scripts (${enabledScripts.length}):`);
+                    enabledScripts.forEach(script => {
+                        console.log(`  - ${script.name || script.scriptName || 'Unnamed'} (regex: ${(script.regex || script.findRegex || '').substring(0, 50)}...)`);
+                    });
+                } else {
+                    console.log(`⚠ No regex scripts enabled by default.`);
+                }
+            }
+
+            return char;
+        };
+
         const importCharacter = (event) => {
             const file = event.target.files[0];
             if (!file) return;
@@ -8794,208 +8996,6 @@ year 2025, textless version, {{petite,loli}}, Petite figure, no text, The image 
 
             // Reset file input
             event.target.value = '';
-
-            const parseExternalCardData = async (rawData, avatarUrl) => {
-                    console.log('Processing Raw Data:', rawData);
-                    let charData = rawData;
-                    let characterBook = null;
-                    let regexScripts = null;
-                    let uiTemplates = null;
-
-                    // --- External Card Data Structure Parsing ---
-
-                    // Wrapped cards store the actual character fields in a 'data' object.
-                    if (rawData.data) {
-                        charData = rawData.data;
-                    }
-
-                    const discardRemovedCardFields = (target) => {
-                        if (!target || typeof target !== 'object') return;
-                        [
-                            'mes_example',
-                            'system_prompt',
-                            'post_history_instructions',
-                            'alternate_greetings',
-                            'tags',
-                            'creator',
-                            'character_version',
-                            'spec',
-                            'spec_version'
-                        ].forEach(field => delete target[field]);
-                        if (target.extensions && typeof target.extensions === 'object') {
-                            delete target.extensions.world;
-                            delete target.extensions.depth_prompt;
-                        }
-                    };
-                    discardRemovedCardFields(rawData);
-                    discardRemovedCardFields(rawData.data);
-                    discardRemovedCardFields(charData);
-
-                    // --- Extract Core Character Fields ---
-                    // External cards may use specific field names. We map them to our internal structure.
-                    // Priority: V2 fields > V1 fields > Fallbacks
-
-                    const name = charData.name || charData.char_name || 'Unknown';
-                    const description = charData.description || charData.char_persona || '';
-                    const personality = charData.personality || '';
-                    const first_mes = charData.first_mes || '';
-                    const creator_notes = charData.creator_notes || charData.creatorcomment || charData.creator_comment || '';
-
-                    // --- Extract World Info (Character Book) ---
-                    // In V2, this is explicitly 'character_book'
-                    if (charData.character_book) {
-                        characterBook = charData.character_book;
-                    }
-                    // Fallback for V1 or loose JSONs
-                    else if (rawData.character_book) {
-                        characterBook = rawData.character_book;
-                    }
-
-                    // --- Extract Regex Scripts ---
-                    // In V2-compatible cards, regex scripts are often in 'extensions.regex_scripts'
-                    if (charData.extensions && charData.extensions.regex_scripts) {
-                        regexScripts = charData.extensions.regex_scripts;
-                    }
-                    // Check root extensions as fallback
-                    else if (rawData.extensions && rawData.extensions.regex_scripts) {
-                        regexScripts = rawData.extensions.regex_scripts;
-                    }
-                    // Direct legacy keys
-                    else if (charData.regex_scripts || rawData.regex_scripts) {
-                        regexScripts = charData.regex_scripts || rawData.regex_scripts;
-                    }
-
-                    uiTemplates = charData.uiTemplates
-                        || charData.ui_templates
-                        || rawData.uiTemplates
-                        || rawData.ui_templates
-                        || charData.extensions?.ui_templates
-                        || charData.extensions?.rp_hub_ui_templates
-                        || rawData.extensions?.ui_templates
-                        || rawData.extensions?.rp_hub_ui_templates
-                        || null;
-
-                    const char = {
-                        name,
-                        description,
-                        first_mes,
-                        avatar: avatarUrl || defaultAvatar,
-                        personality,
-                        creator_notes,
-                        worldInfo: [],
-                        regexScripts: [],
-                        uiTemplates: Array.isArray(uiTemplates) ? uiTemplates.map(t => normalizeUiTemplate({ ...sanitizeUiTemplateImportEntry(t), id: generateUUID(), scope: 'character' })) : [],
-                        recentGenerationTimes: [],
-                        contextTokens: 0,
-                        uuid: generateUUID(),
-                        createdAt: Date.now()
-                    };
-
-                    // --- Process World Info Entries ---
-                    let entries = [];
-                    if (characterBook) {
-                        if (Array.isArray(characterBook.entries)) {
-                            entries = characterBook.entries;
-                        } else if (typeof characterBook.entries === 'object' && characterBook.entries !== null) {
-                            // Handle object-based entries from some exports (like the user's file)
-                            entries = Object.values(characterBook.entries);
-                        } else if (Array.isArray(characterBook)) {
-                            // Legacy array format
-                            entries = characterBook;
-                        }
-                    }
-
-                    if (entries.length > 0) {
-                        char.worldInfo = entries
-                            .map(entry => normalizeWorldInfoEntry({ ...entry, scope: 'character' }))
-                            .filter(entry => entry.scope !== 'global');
-                        console.log(`Imported and normalized ${char.worldInfo.length} World Info entries.`);
-                    }
-
-                    // --- Process Regex Scripts ---
-                    if (Array.isArray(regexScripts)) {
-                        char.regexScripts = regexScripts.map(script => {
-                            // Preserve ALL original external fields completely
-                            const normalized = {
-                                ...script, // Keep all original fields intact
-                            };
-
-                            // Add normalized fields ONLY if they don't exist
-                            // Common external fields: scriptName, findRegex, replaceString, trimStrings,
-                            // disabled, markdownOnly, promptOnly, runOnEdit, substituteRegex
-                            if (!normalized.name && script.scriptName) {
-                                normalized.name = script.scriptName;
-                            }
-                            if (!normalized.name) {
-                                normalized.name = 'Regex Script';
-                            }
-
-                            // Keep both findRegex (external standard) and regex (legacy)
-                            if (!normalized.regex && script.findRegex) {
-                                normalized.regex = script.findRegex;
-                            }
-                            if (!normalized.regex) {
-                                normalized.regex = '';
-                            }
-
-                            // Parse /pattern/flags format if present
-                            if (normalized.regex.startsWith('/') && normalized.regex.lastIndexOf('/') > 0) {
-                                const lastSlash = normalized.regex.lastIndexOf('/');
-                                const potentialFlags = normalized.regex.substring(lastSlash + 1);
-                                // Simple flags validation
-                                if (/^[gimsuy]*$/.test(potentialFlags)) {
-                                    normalized.flags = potentialFlags;
-                                    normalized.regex = normalized.regex.substring(1, lastSlash);
-                                }
-                            }
-
-                            // Keep both replaceString (external standard) and replacement (legacy)
-                            if (!normalized.replacement && script.replaceString) {
-                                normalized.replacement = script.replaceString;
-                            }
-
-                            // Preserve flags (if not already set by parsing)
-                            if (!normalized.flags && script.regexFlags) {
-                                normalized.flags = script.regexFlags;
-                            }
-                            if (!normalized.flags) {
-                                normalized.flags = 'g';
-                            }
-
-                            // CRITICAL: Convert ST's 'disabled' field to 'enabled'
-                            // ST uses: disabled=true (禁用), disabled=false/undefined (启用)
-                            // We use: enabled=true (启用), enabled=false (禁用)
-                            if (!normalized.hasOwnProperty('enabled')) {
-                                // If script has 'disabled' field, use it; otherwise default to enabled
-                                normalized.enabled = script.hasOwnProperty('disabled') ? !script.disabled : true;
-                            }
-
-                            // New Fields
-                            if (!normalized.placement) normalized.placement = script.placement || [1, 2];
-                            if (normalized.markdownOnly === undefined) normalized.markdownOnly = script.markdownOnly || false;
-                            if (normalized.promptOnly === undefined) normalized.promptOnly = script.promptOnly || false;
-                            if (normalized.runOnEdit === undefined) normalized.runOnEdit = script.runOnEdit || false;
-                            if (normalized.minDepth === undefined) normalized.minDepth = script.minDepth || null;
-                            if (normalized.maxDepth === undefined) normalized.maxDepth = script.maxDepth || null;
-
-                            return normalizeRegexScript({ ...normalized, scope: 'character' }, 'character');
-                        }).filter(script => script.scope !== 'global');
-
-                        // Log imported regex scripts status
-                        const enabledScripts = char.regexScripts.filter(s => s.enabled !== false);
-                        console.log(`✓ Imported ${char.regexScripts.length} Regex scripts.`);
-                        if (enabledScripts.length > 0) {
-                            console.log(`✓ Default enabled regex scripts (${enabledScripts.length}):`);
-                            enabledScripts.forEach(script => {
-                                console.log(`  - ${script.name || script.scriptName || 'Unnamed'} (regex: ${(script.regex || script.findRegex || '').substring(0, 50)}...)`);
-                            });
-                        } else {
-                            console.log(`⚠ No regex scripts enabled by default.`);
-                        }
-                    }
-
-                    return char;
-            };
 
             const processCharacterData = async (rawData, avatarUrl) => {
                 try {
