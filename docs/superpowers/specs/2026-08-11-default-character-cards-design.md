@@ -13,7 +13,7 @@ RP-Hub 首次启动时角色列表为空（`characters = ref([])`，IndexedDB `R
 **决策记录**（与用户确认）：
 - **生效范围**：Web 版与桌面版（Electron 只是同一 Web 应用的包装）都生效，播种逻辑放共享 `app.js`
 - **卡内容**：用户自己的 PNG v2 角色卡（用户手动命名后拷入 `cards/default/`，不经重命名脚本）
-- **播种时机**：仅首次（角色列表为空）自动播种 + 设置页"恢复默认角色卡"按钮
+- **播种时机**：仅首次（`characters` 从未保存过，即首次启动）自动播种 + 设置页"恢复默认角色卡"按钮。用户删光角色后重启**不会**自动复活（避免"缺卡自动补"），通过恢复按钮重新导入
 - **恢复语义**：追加 + 按 name 去重，绝不删除用户自己的卡
 
 **方案选型**：内嵌 JS 产物（`assets/js/default-cards.js`），而非运行时 fetch 卡文件——浏览器 file:// 直接打开（官方支持用法）时 fetch 本地文件被 CORS 拦截，内嵌是唯一全环境（file:// / http 托管 / Electron）可靠的做法。
@@ -55,7 +55,7 @@ RP-Hub/
 ### 2.4 app.js 改动（3 处）
 
 1. **提取解析函数**：把 `importCharacter` 内的 `processCharacterData` 解析逻辑提取为可复用函数 `parseExternalCardData(rawData, avatarUrl)`（V2 字段映射、worldInfo / regexScripts / uiTemplates 归一化保持不变），导入与播种共用
-2. **首次播种**：`loadData()` 中 `getStoredValue('characters')` 为空/不存在 → 逐张调用 `parseExternalCardData` → push → `setStoredValue('characters', ...)`
+2. **首次播种**：`loadData()` 中 `getStoredValue('characters')` 为 undefined/null（从未保存过，仅真正首次启动）→ 逐张调用 `parseExternalCardData` → push → `setStoredValue('characters', ...)`
 3. **恢复默认**：新增 `restoreDefaultCards()`——过滤 name 已存在的卡 → 解析 → 追加 → 保存 → toast 反馈"已添加 N 张默认卡，M 张已存在跳过"
 
 ### 2.5 设置页 UI
@@ -66,7 +66,7 @@ RP-Hub/
 
 ## 3. 数据流
 
-- **首次启动**：`loadData()` → `characters` 为空 → 遍历 `RPHubDefaultCards` → `parseExternalCardData()` 归一化 → push → 持久化 → 正常渲染。与手工导入路径一致，卡片行为与手工导入完全一致
+- **首次启动**：`loadData()` → `getStoredValue('characters')` 为 undefined/null（从未保存过）→ 遍历 `RPHubDefaultCards` → `parseExternalCardData()` 归一化 → push → 持久化 → 正常渲染。与手工导入路径一致，卡片行为与手工导入完全一致
 - **恢复默认**：按钮 → 按 name 去重过滤 → 解析 → 追加 → 保存 → toast
 - **后续更新默认卡内容**：重新运行生成脚本 + 已播种过的用户需点"恢复默认"才能拿到新卡（预期行为，不做自动补卡）
 
