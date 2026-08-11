@@ -12,9 +12,19 @@
 
 import argparse
 import base64
+import binascii
 import json
 import os
 import struct
+import sys
+
+# Windows 控制台默认 GBK，卡片文件名/卡名含 emoji 时 print 会崩溃；
+# 统一以 UTF-8 输出，无法编码的字符用 ? 替代。
+for _stream in (sys.stdout, sys.stderr):
+    try:
+        _stream.reconfigure(encoding="utf-8", errors="replace")
+    except (AttributeError, ValueError):
+        pass
 
 CONFIG = {
     "src_dir": os.path.join("cards", "default"),
@@ -43,6 +53,24 @@ def extract_chara_json(png_bytes):
                 return text.decode("latin-1")
         pos += 12 + length
     raise ValueError("未找到 chara 文本块（不是 V2 角色卡？）")
+
+
+def parse_chara_text(text):
+    """解析 chara 块文本为 JSON。
+
+    兼容两种写法（与 card-utils.js 的 parseCharacterPayload 行为一致）：
+    1. 原始 JSON（v2 标准）
+    2. base64 编码的 JSON（部分工具导出，如 eyJzcGVj... 开头）
+    """
+    text = text.strip()
+    if not text:
+        raise ValueError("chara 文本为空")
+    try:
+        # 优先按 base64 解码（validate=False 会丢弃非 base64 字符，原始 JSON 走此路径会解码成乱码并在后续解析失败）
+        decoded = base64.b64decode(text, validate=False).decode("utf-8")
+        return json.loads(decoded)
+    except (binascii.Error, UnicodeDecodeError, json.JSONDecodeError):
+        return json.loads(text)
 
 
 def compress_avatar(png_bytes):
@@ -90,10 +118,11 @@ def main():
                 png_bytes = f.read()
             try:
                 chara_text = extract_chara_json(png_bytes)
-                raw = json.loads(chara_text)
+                raw = parse_chara_text(chara_text)
                 avatar_b64, mime = compress_avatar(png_bytes)
                 cards.append({**raw, "avatar": f"data:{mime};base64,{base64.b64encode(avatar_b64).decode('ascii')}"})
-                print(f"[ok]   {fname} -> {raw.get('name', '(未命名)')}")
+                card_name = raw.get("name") or raw.get("data", {}).get("name") or "(未命名)"
+                print(f"[ok]   {fname} -> {card_name}")
             except Exception as e:
                 skipped.append((fname, str(e)))
                 print(f"[skip] {fname}: {e}")
