@@ -8,7 +8,7 @@
 
 ## API key 说明
 
-默认API key 为公用免费API，可能存在不稳定现象，请在「设置」中配置自己的 API key。当前免费文本生成模型API提供商有[opencode zen](https://opencode.ai)、[sensenova](https://token.sensenova.cn)、[agnes](https://apihub.agnes-ai.com)。
+默认API key 为公用免费API，可能存在不稳定现象，请在「设置」中配置自己的 API key。当前免费文本生成模型API提供商有[opencode zen](https://opencode.ai/auth)、[sensenova](https://platform.sensenova.cn/console/keys)、[agnes](https://platform.agnes-ai.com/settings/apiKeys)。
 
 ### API key 配置方法
 
@@ -17,10 +17,10 @@
 ### 文本生成模型推荐 
 
 推荐使用 **opencode zen** 的 **mimo-v2.5-free** 模型，免费、速度快，文风优于deepseekv4 flash  
-若想使用更强大的模型如grok、gpt等，可开通使用[opencode go](https://opencode.ai)。
+若想使用更强大的模型如grok、gpt等，可开通使用[opencode go](https://opencode.ai/go?ref=NXYGD8GHGM)。
 
 ### 图片生成模型推荐
-推荐使用[sensenova](https://token.sensenova.cn)提供商，有大量免费使用额度
+推荐使用[sensenova](https://platform.sensenova.cn/console/keys)提供商，有大量免费使用额度
 
 
 ## 快速开始
