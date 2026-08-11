@@ -2308,6 +2308,29 @@ createApp({
                     }
                 }
 
+                // --- Seed default character cards (首次启动开箱即用) ---
+                if ((savedChars === undefined || savedChars === null)
+                    && typeof window.RPHubDefaultCards !== 'undefined'
+                    && Array.isArray(window.RPHubDefaultCards)
+                    && window.RPHubDefaultCards.length > 0) {
+                    let seeded = 0;
+                    for (const rawCard of window.RPHubDefaultCards) {
+                        try {
+                            const char = await parseExternalCardData(rawCard, rawCard.avatar || null);
+                            if (char) {
+                                characters.value.push(char);
+                                seeded++;
+                            }
+                        } catch (e) {
+                            console.warn('Skip default card:', rawCard.name || 'unknown', e);
+                        }
+                    }
+                    if (seeded > 0) {
+                        await setStoredValue('characters', characters.value);
+                        console.log(`Seeded ${seeded} default character cards`);
+                    }
+                }
+
                 const savedSettings = await getStoredValue('settings');
                 if (savedSettings) {
                     Object.keys(savedSettings).forEach(key => {
