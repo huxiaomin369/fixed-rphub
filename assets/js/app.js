@@ -9124,19 +9124,17 @@ year 2025, textless version, {{petite,loli}}, Petite figure, no text, The image 
                 const existingNames = new Set(characters.value.map(c => c.name));
                 let added = 0, skipped = 0;
                 for (const rawCard of defaults) {
-                    const name = rawCard.name || rawCard.char_name || 'Unknown';
-                    if (existingNames.has(name)) { skipped++; continue; }
                     try {
                         const char = await parseExternalCardData(rawCard, rawCard.avatar || null);
-                        if (char) {
+                        if (existingNames.has(char.name)) {
+                            skipped++;
+                        } else {
                             characters.value.push(char);
                             existingNames.add(char.name);
                             added++;
-                        } else {
-                            skipped++;
                         }
                     } catch (e) {
-                        console.warn('Skip default card:', name, e);
+                        console.warn('Skip default card:', rawCard.name || rawCard.char_name || 'unknown', e);
                         skipped++;
                     }
                 }
