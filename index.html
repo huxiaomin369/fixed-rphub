@@ -2504,6 +2504,35 @@
                 </div>
             </div>
 
+            <!-- Help View -->
+            <div v-if="currentView === 'help'" class="p-4 md:p-6 h-full overflow-y-auto animate-fade-in">
+                <div class="max-w-3xl mx-auto flex items-center mb-4 md:mb-6">
+                    <button @click="toggleMobileMenu"
+                        class="md:hidden mr-3 text-gray-500 md:hover:text-gray-700 active:text-gray-700 transition-colors">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M4 6h16M4 12h16m-7 6h7"></path>
+                        </svg>
+                    </button>
+                    <h2 class="text-xl md:text-2xl font-bold text-gray-800 flex items-center">
+                        <svg class="w-6 h-6 md:w-7 md:h-7 mr-2 text-primary-600" fill="none" stroke="currentColor"
+                            viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z">
+                            </path>
+                        </svg>
+                        使用说明
+                    </h2>
+                </div>
+                <div class="max-w-3xl mx-auto">
+                    <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
+                        <div class="prose prose-sm prose-gray max-w-none">
+                            <div class="markdown-body" v-html="renderMarkdown(helpContent, 'assistant', true)"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- Presets View -->
             <div v-if="currentView === 'presets'" class="p-4 md:p-6 h-full overflow-y-auto animate-fade-in">
                 <div class="flex justify-between items-center mb-4 md:mb-6">
