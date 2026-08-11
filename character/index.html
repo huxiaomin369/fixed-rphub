@@ -61,6 +61,16 @@
             -moz-osx-font-smoothing: grayscale;
         }
 
+        /* 主题色覆盖：cupcake 由青/粉改为暖橙/桃色系（仅改品牌色，保留 cupcake base 底色） */
+        :root[data-theme="cupcake"] {
+            --p: 0.666 0.157 58.318;
+            --pc: 1 0 0;
+            --s: 0.725 0.175 349.761;
+            --sc: 0.266 0.076 36.259;
+            --a: 0.555 0.146 48.998;
+            --ac: 1 0 0;
+        }
+
         #app {
             font-family: var(--app-font-family) !important;
             height: var(--app-visual-height, 100%);
@@ -266,7 +276,7 @@
         }
 
         .path {
-            stroke: #65c3c8;
+            stroke: #d97706;
             stroke-linecap: round;
             animation: dash 1.5s ease-in-out infinite;
         }
@@ -306,9 +316,9 @@
                         serif: ['var(--app-font-serif)', 'Lora', 'Noto Serif SC', 'Source Han Serif SC', 'Source Han Serif CN', 'STSong', 'SimSun', 'Georgia', 'Cambria', 'Times New Roman', 'Times', 'serif']
                     },
                     colors: {
-                        primary: '#65c3c8',
-                        secondary: '#ef9fbc',
-                        accent: '#eeaf3a',
+                        primary: '#d97706',
+                        secondary: '#f472b6',
+                        accent: '#b45309',
                     }
                 }
             }

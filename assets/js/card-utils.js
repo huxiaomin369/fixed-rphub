@@ -263,7 +263,7 @@
             description: character.description,
             personality: character.personality,
             first_mes: character.first_mes,
-            creator_notes: character.creator_notes || 'Exported from RolePlay Hub',
+            creator_notes: character.creator_notes || 'Exported from aiRolePlay',
             ...(includeUiTemplates ? { uiTemplates } : {}),
             extensions: {
                 rp_hub_watermark: 'rp-hub',
