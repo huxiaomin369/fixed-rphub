@@ -8795,8 +8795,7 @@ year 2025, textless version, {{petite,loli}}, Petite figure, no text, The image 
             // Reset file input
             event.target.value = '';
 
-            const processCharacterData = async (rawData, avatarUrl) => {
-                try {
+            const parseExternalCardData = async (rawData, avatarUrl) => {
                     console.log('Processing Raw Data:', rawData);
                     let charData = rawData;
                     let characterBook = null;
@@ -8995,6 +8994,13 @@ year 2025, textless version, {{petite,loli}}, Petite figure, no text, The image 
                         }
                     }
 
+                    return char;
+            };
+
+            const processCharacterData = async (rawData, avatarUrl) => {
+                try {
+                    const char = await parseExternalCardData(rawData, avatarUrl);
+                    if (!char) return;
                     characters.value.push(char);
 
                     // Auto-select the new character and enter chat immediately.
