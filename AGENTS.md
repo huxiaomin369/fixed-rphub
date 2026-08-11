@@ -14,7 +14,8 @@ In `index.html`, scripts must load in this order:
 1. `assets/js/utils.js` — pure globals (`generateUUID`, `formatTimeAgo`, `parseCot`)
 2. `assets/js/card-utils.js` — IIFE, exposes `window.RPHubCardUtils`
 3. `assets/js/ui-select.js` — IIFE, exposes `window.RPHubCustomSelect`
-4. `assets/js/app.js` — main Vue app via `createApp()`, registers `CustomSelect` component
+4. `assets/js/default-cards.js` — 生成产物，暴露 `window.RPHubDefaultCards`（默认角色卡，由 `build_default_cards.py` 生成）
+5. `assets/js/app.js` — main Vue app via `createApp()`, registers `CustomSelect` component
 
 `character/index.html` only loads `card-utils.js` and `ui-select.js` (from `../assets/js/`).
 
