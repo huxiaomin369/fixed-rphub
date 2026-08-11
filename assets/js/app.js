@@ -9104,6 +9104,54 @@ year 2025, textless version, {{petite,loli}}, Petite figure, no text, The image 
             }
         };
 
+        const restoreDefaultCardsBusy = ref(false);
+
+        const defaultCardCount = computed(() => {
+            return (typeof window.RPHubDefaultCards !== 'undefined' && Array.isArray(window.RPHubDefaultCards))
+                ? window.RPHubDefaultCards.length
+                : 0;
+        });
+
+        const restoreDefaultCards = async () => {
+            if (restoreDefaultCardsBusy.value) return;
+            const defaults = window.RPHubDefaultCards;
+            if (!defaults || !Array.isArray(defaults) || defaults.length === 0) {
+                showToast('没有可恢复的默认角色卡', 'warning');
+                return;
+            }
+            restoreDefaultCardsBusy.value = true;
+            try {
+                const existingNames = new Set(characters.value.map(c => c.name));
+                let added = 0, skipped = 0;
+                for (const rawCard of defaults) {
+                    const name = rawCard.name || rawCard.char_name || 'Unknown';
+                    if (existingNames.has(name)) { skipped++; continue; }
+                    try {
+                        const char = await parseExternalCardData(rawCard, rawCard.avatar || null);
+                        if (char) {
+                            characters.value.push(char);
+                            existingNames.add(char.name);
+                            added++;
+                        } else {
+                            skipped++;
+                        }
+                    } catch (e) {
+                        console.warn('Skip default card:', name, e);
+                        skipped++;
+                    }
+                }
+                if (added > 0) {
+                    await setStoredValue('characters', characters.value);
+                }
+                showToast(
+                    `已添加 ${added} 张默认角色卡${skipped > 0 ? `，${skipped} 张已存在/跳过` : ''}`,
+                    added > 0 ? 'success' : 'info'
+                );
+            } finally {
+                restoreDefaultCardsBusy.value = false;
+            }
+        };
+
         const buildCharacterExportData = (char) => cardUtils.buildCharacterCardData(char, {
             worldInfoMapper: (entry) => toWorldInfoExportEntry({ ...entry, scope: 'character' }),
             uiTemplateMapper: (template) => toUiTemplateExportEntry({ ...template, scope: 'character' }),
@@ -10200,6 +10248,9 @@ ${uiTemplateAnalysisSection}
             isBatchDeleteMode, isSidebarCollapsed, isAdvancedNavOpen, toggleAdvancedNav, selectedCharacterIndices, toggleBatchDeleteMode, toggleCharacterSelection, batchDeleteCharacters,
             getCharacterWICount, getCharacterRegexCount,
             handleAvatarUpload, importCharacter, exportCharacter,
+            restoreDefaultCards,
+            restoreDefaultCardsBusy,
+            defaultCardCount,
             createPreset, editPreset, savePreset, deletePreset, movePreset,
             renderMarkdown, messageUsesHtmlFrame, messageUsesWideLayout, parseCot, formatTimeAgo, closeCharacterEditor: () => showCharacterEditor.value = false,
             openExportModal: (type) => {
