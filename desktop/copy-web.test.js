@@ -17,6 +17,8 @@ function makeFakeSource() {
   fs.writeFileSync(path.join(tmp, 'node_modules', 'junk.js'), 'junk');
   fs.writeFileSync(path.join(tmp, 'LICENSE'), 'CC BY-NC');
   fs.writeFileSync(path.join(tmp, 'README.md'), '# readme');
+  fs.mkdirSync(path.join(tmp, 'cards', 'default'), { recursive: true });
+  fs.writeFileSync(path.join(tmp, 'cards', 'default', 'test.png'), 'fake-png');
   return tmp;
 }
 
@@ -37,6 +39,7 @@ it('copyWeb skips proxy-worker.js, node_modules, LICENSE, README.md', () => {
   assert.ok(!fs.existsSync(path.join(dst, 'node_modules')), 'node_modules should NOT be copied');
   assert.ok(!fs.existsSync(path.join(dst, 'LICENSE')), 'LICENSE should NOT be copied');
   assert.ok(!fs.existsSync(path.join(dst, 'README.md')), 'README.md should NOT be copied');
+  assert.ok(!fs.existsSync(path.join(dst, 'cards')), 'cards should NOT be copied');
 });
 
 it('copyWeb creates fresh dst (removes existing contents)', () => {

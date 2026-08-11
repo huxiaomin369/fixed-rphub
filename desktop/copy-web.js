@@ -10,6 +10,7 @@ const TOP_LEVEL_COPY = ['index.html', 'assets', 'character'];
 // 任何层级都要跳过的目录/文件名
 const SKIP_NAMES = new Set([
   'proxy-worker.js',
+  'cards',
   'node_modules',
   '.git',
   '.wrangler',
