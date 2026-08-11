@@ -1786,7 +1786,7 @@
 
                 const imageGenProviderOptions = [
                     { id: 'agnes', name: 'Agnes', apiUrl: 'https://apihub.agnes-ai.com/v1', defaultModel: 'agnes-image-2.1-flash' },
-                    { id: 'sensenova', name: 'SenseNova', apiUrl: 'https://rphub.aieasy.cc.cd/sensenova/v1', defaultModel: 'sensenova-u1-fast', fixedSize: '1760x2368' }
+                    { id: 'sensenova', name: 'SenseNova', apiUrl: 'https://token.sensenova.cn/v1', defaultModel: 'sensenova-u1-fast', fixedSize: '1760x2368' }
                 ];
                 const getImageGenProviderUrl = (providerId) => {
                     const provider = imageGenProviderOptions.find(p => p.id === providerId);

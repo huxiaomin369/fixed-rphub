@@ -106,14 +106,26 @@ createApp({
             {
                 id: 'agnes',
                 name: 'Agnes',
-                apiUrl: 'https://rphub.aieasy.cc.cd/agnes/v1',
+                apiUrl: 'https://apihub.agnes-ai.com/v1',
                 icon: 'https://agnes-ai.com/images/logo-icon.png'
             },
             {
                 id: 'opencpde_go',
                 name: 'OpenCode Go',
-                apiUrl: 'https://rphub.aieasy.cc.cd/opencode/zen/go/v1',
+                apiUrl: 'https://opencode.ai/zen/go/v1',
                 icon: 'https://opencode.ai/favicon-v3.ico'
+            },
+            {
+                id: 'opencode_zen',
+                name: 'OpenCode Zen',
+                apiUrl: 'https://opencode.ai/zen/v1',
+                icon: 'https://opencode.ai/favicon-v3.ico'
+            },
+            {
+                id: 'sensenova',
+                name: 'SenseNova',
+                apiUrl: 'https://token.sensenova.cn/v1',
+                icon: 'https://largemodel.sensetime.com/skin/images/bannericon.svg',
             },
             {
                 id: 'deepseek',
@@ -134,21 +146,9 @@ createApp({
                 icon: 'https://siliconflow.cn/favicon.ico'
             },
             {
-                id: 'opencode_zen',
-                name: 'OpenCode Zen',
-                apiUrl: 'https://rphub.aieasy.cc.cd/opencode/zen/v1',
-                icon: 'https://opencode.ai/favicon-v3.ico'
-            },
-            {
-                id: 'sensenova',
-                name: 'SenseNova',
-                apiUrl: 'https://rphub.aieasy.cc.cd/sensenova/v1',
-                icon: 'https://largemodel.sensetime.com/skin/images/bannericon.svg',
-            },
-            {
                 id: 'mimo',
                 name: 'mimo',
-                apiUrl: 'https://rphub.aieasy.cc.cd/mimo/v1',
+                apiUrl: 'https://api.xiaomimimo.com/v1',
                 icon: '',
             },
         ];
@@ -157,14 +157,14 @@ createApp({
             {
                 id: 'agnes',
                 name: 'Agnes',
-                apiUrl: 'https://rphub.aieasy.cc.cd/agnes/v1',
+                apiUrl: 'https://apihub.agnes-ai.com/v1',
                 icon: 'https://agnes-ai.com/images/logo-icon.png',
                 defaultModel: 'agnes-image-2.1-flash'
             },
             {
                 id: 'sensenova',
                 name: 'SenseNova',
-                apiUrl: 'https://rphub.aieasy.cc.cd/sensenova/v1',
+                apiUrl: 'https://token.sensenova.cn/v1',
                 icon: 'https://largemodel.sensetime.com/skin/images/bannericon.svg',
                 defaultModel: 'sensenova-u1-fast',
                 fixedSize: '1760x2368'
