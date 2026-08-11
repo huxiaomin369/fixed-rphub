@@ -2300,6 +2300,37 @@
                         </div>
                     </div>
 
+                    <!-- Default Character Cards -->
+                    <div class="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden mb-6">
+                        <div class="h-16 bg-gradient-to-r from-teal-500 to-cyan-600 relative overflow-hidden flex items-center px-6">
+                            <div class="absolute inset-0 opacity-10">
+                                <svg class="w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
+                                    <path d="M0 0 L100 0 L100 100 L0 100 Z" fill="transparent" />
+                                    <path d="M0 50 Q 50 100 100 50" stroke="white" stroke-width="2" fill="none" />
+                                </svg>
+                            </div>
+                            <div class="text-white font-semibold flex items-center text-lg relative z-10">
+                                <svg class="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h10" />
+                                </svg>
+                                默认角色卡
+                            </div>
+                        </div>
+                        <div class="p-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                            <div class="text-sm text-gray-600 leading-relaxed">
+                                <p>应用内置 {{ defaultCardCount }} 张默认角色卡，首次启动时自动加入角色列表。</p>
+                                <p class="text-xs text-gray-400 mt-1">删除后可随时从这里重新导入，不会影响你已有的角色。</p>
+                            </div>
+                            <button @click="restoreDefaultCards" :disabled="restoreDefaultCardsBusy"
+                                class="flex items-center justify-center px-5 py-2.5 rounded-xl text-sm font-semibold text-white bg-teal-600 hover:bg-teal-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm whitespace-nowrap">
+                                <svg v-if="restoreDefaultCardsBusy" class="w-4 h-4 mr-2 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                </svg>
+                                <span>{{ restoreDefaultCardsBusy ? '导入中...' : '恢复默认角色卡' }}</span>
+                            </button>
+                        </div>
+                    </div>
+
                     <!-- Advanced Settings -->
                     <div class="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden mb-6">
                         <!-- Header -->
