@@ -928,16 +928,6 @@
                                 </button>
                             </div>
                             
-                            <!-- 配置目标选择器 -->
-                            <div class="flex gap-2 bg-stone-100 p-1 rounded-lg">
-                                <button v-for="target in modelTargets" :key="target.id"
-                                        @click="currentModelTarget = target.id"
-                                        class="flex-1 py-1.5 text-xs rounded-md transition-all font-bold text-center"
-                                        :class="currentModelTarget === target.id ? 'bg-white text-stone-800 shadow-sm' : 'text-stone-500 hover:text-stone-700'">
-                                    {{ target.name }}
-                                </button>
-                            </div>
-
                             <div class="relative flex-1 min-h-0 flex flex-col">
                                 <svg class="icon w-4 h-4 absolute left-3 top-2.5 text-stone-400" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
                                 <input v-model="modelSearch" placeholder="搜索模型..." class="w-full pl-9 border border-stone-200 rounded px-3 py-2 text-sm mb-2 focus:ring-2 focus:ring-stone-200 focus:border-stone-400 outline-none bg-stone-50">
@@ -946,9 +936,9 @@
                                     <div v-for="model in filteredModels" :key="model.id" 
                                          @click="selectModel(model.id)"
                                          class="px-4 py-2 text-sm cursor-pointer hover:bg-stone-100 flex justify-between items-center transition-colors border-b border-stone-50 last:border-0"
-                                         :class="{'bg-stone-100 font-bold text-stone-800': settings[currentModelTarget] === model.id, 'text-stone-600': settings[currentModelTarget] !== model.id}">
+                                         :class="{'bg-stone-100 font-bold text-stone-800': settings.model === model.id, 'text-stone-600': settings.model !== model.id}">
                                         <span>{{ model.id }}</span>
-                                        <svg v-if="settings[currentModelTarget] === model.id" class="icon w-4 h-4 text-green-600" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+                                        <svg v-if="settings.model === model.id" class="icon w-4 h-4 text-green-600" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
                                     </div>
                                     <div v-if="filteredModels.length === 0" class="px-4 py-8 text-sm text-stone-400 text-center flex flex-col items-center gap-2">
                                         <svg class="icon w-8 h-8 text-stone-300" viewBox="0 0 24 24"><path d="M12 2C6.47 2 2 6.47 2 12s4.47 10 10 10 10-4.47 10-10S17.53 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm3.59-13L12 10.59 8.41 7 7 8.41 10.59 12 7 15.59 8.41 17 12 13.41 15.59 17 17 15.59 13.41 12 17 8.41z"/></svg>
@@ -956,7 +946,7 @@
                                     </div>
                                 </div>
                                 <div class="mt-2 text-xs text-stone-500 flex justify-between">
-                                    <span>当前: <span class="font-mono font-bold text-stone-700">{{ settings[currentModelTarget] || '未设置' }}</span></span>
+                                    <span>当前: <span class="font-mono font-bold text-stone-700">{{ settings.model || '未设置' }}</span></span>
                                     <span class="text-stone-300">共 {{ availableModels.length }} 个</span>
                                 </div>
                             </div>
@@ -1038,12 +1028,6 @@
                     { id: 'siliconflow', name: 'SiliconFlow', apiUrl: 'https://api.siliconflow.cn/v1', icon: 'https://siliconflow.cn/favicon.ico' }
                 ];
 
-                const currentModelTarget = ref('model');
-                const modelTargets = [
-                    { id: 'model', name: '正文生成' },
-                    { id: 'commentModel', name: '评论区' }
-                ];
-
                 const isGenerating = ref(false);
                 const abortController = ref(null);
                 const isLoadingModels = ref(false);
@@ -1105,9 +1089,7 @@
                     providerId: '',
                     apiUrl: '',
                     apiKey: '',
-                    model: '',
-                    reviewModel: '',
-                    commentModel: ''
+                    model: ''
                 });
                 const selectedApiProvider = computed(() => (
                     apiProviders.value.find(provider => provider.id === settings.value.providerId) || null
@@ -1991,7 +1973,7 @@
                     }
                 };
 
-                const selectModel = (id) => { settings.value[currentModelTarget.value] = id; saveData(); };
+                const selectModel = (id) => { settings.value.model = id; saveData(); };
 
                 const fetchModels = async () => {
                     if (!settings.value.apiUrl || !settings.value.apiKey) {
@@ -2047,9 +2029,7 @@
                                 chapters: JSON.parse(JSON.stringify(chapters.value)),
                                 localSettings: {
                                     providerId: settings.value.providerId,
-                                    model: settings.value.model,
-                                    reviewModel: settings.value.reviewModel,
-                                    commentModel: settings.value.commentModel
+                                    model: settings.value.model
                                 },
                                 wordCountTarget: wordCountTarget.value,
                                 wordCount: totalWordCount.value
@@ -2086,9 +2066,7 @@
                         chapters: [],
                         localSettings: {
                             providerId: globalSettings.value.activeProviderId || '',
-                            model: '',
-                            reviewModel: '',
-                            commentModel: ''
+                            model: ''
                         },
                         wordCountTarget: 2500,
                         wordCount: 0
@@ -2125,9 +2103,7 @@
                         providerId: book.localSettings?.providerId || globalSettings.value.activeProviderId || '',
                         apiUrl: '',
                         apiKey: '',
-                        model: book.localSettings?.model || '',
-                        reviewModel: book.localSettings?.reviewModel || '',
-                        commentModel: book.localSettings?.commentModel || ''
+                        model: book.localSettings?.model || ''
                     };
                     const provider = apiProviders.value.find(item => item.id === settings.value.providerId);
                     if (provider) selectApiProvider(provider, false);
@@ -2525,7 +2501,6 @@ ${charPrompt}
                     showInspirationModal, isGeneratingInspiration, inspirations, generateInspirations, useInspiration,
                     novel, structuredCharacters, chapters, settings, streamContent, nextChapterPrompt,
                     apiProviders, selectedApiProvider, isSyncingRPHub, showApiProviderSelect, syncRPHubAndModels, selectApiProviderAndModels,
-                    currentModelTarget, modelTargets,
                     generateCount, modelSearch, filteredModels, availableModels, wordCountTarget,
                     showConfirmModal, confirmModalConfig, executeConfirm, cancelConfirm, toast, showToast,
                     totalWordCount, currentChapterIndex, mainScroll, bookshelfList, currentTab, tabs,
