@@ -13,17 +13,17 @@
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@300;400;600;700&family=Ma+Shan+Zheng&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Ma+Shan+Zheng&display=swap" rel="stylesheet">
     
     <style>
         :root {
-            --font-main: 'Noto Serif SC', serif;
+            --font-main: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Helvetica Neue", Arial, sans-serif;
             --font-art: 'Ma Shan Zheng', cursive;
         }
         body {
             font-family: var(--font-main);
-            background-color: #f5f5f0;
-            color: #2c2c2c;
+            background-color: #fafafa;
+            color: #292524;
             overscroll-behavior: none; /* 防止iOS橡皮筋效果 */
         }
         .font-art {
@@ -33,8 +33,9 @@
         /* 滚动条美化 */
         ::-webkit-scrollbar { width: 6px; height: 6px; }
         ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: #d1d1c6; border-radius: 3px; }
-        ::-webkit-scrollbar-thumb:hover { background: #a8a89d; }
+        ::-webkit-scrollbar-thumb { background: #d6d3d1; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #a8a29e; }
+        .custom-scrollbar { scrollbar-width: thin; scrollbar-color: #d6d3d1 transparent; }
 
         /* Vue 动画过渡系统 */
         .fade-enter-active, .fade-leave-active { transition: opacity 0.3s ease; }
@@ -70,16 +71,6 @@
 
         .tab-enter-active, .tab-leave-active { transition: opacity 0.15s ease; }
         .tab-enter-from, .tab-leave-to { opacity: 0; }
-
-        /* Tab 滑块动画 */
-        .tab-slider {
-            position: absolute;
-            bottom: 0;
-            height: 2px;
-            background-color: #292524; /* stone-800 */
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            z-index: 10;
-        }
 
         /* 章节折叠动画 (Grid 技巧) */
         .chapter-accordion {
@@ -124,59 +115,14 @@
         /* Markdown 样式 */
         .prose p { margin-bottom: 1.2em; text-indent: 2em; line-height: 1.8; text-align: justify; }
         .prose h1, .prose h2 { text-align: center; margin: 1.5em 0 1em; font-weight: bold; }
-        
-        /* 书评 Markdown 样式优化 */
-        .review-prose p { margin-bottom: 0.8em; text-indent: 0; line-height: 1.6; text-align: left; }
-        .review-prose h3 { font-size: 1em; font-weight: bold; margin-top: 1.2em; margin-bottom: 0.5em; color: #44403c; }
-        .review-prose ul { list-style-type: disc; padding-left: 1.2em; margin-bottom: 0.8em; }
-        .review-prose li { margin-bottom: 0.3em; }
-        .review-prose strong { color: #292524; font-weight: 600; }
 
-        /* 水墨风格笔尖动画 */
-        .quill-pen-svg {
-            width: 100px;
-            height: 100px;
-            overflow: visible;
-            filter: drop-shadow(0 4px 3px rgba(0,0,0,0.05));
+        /* 页面载入动画 */
+        .animate-fade-in-up {
+            animation: fade-in-up 0.6s cubic-bezier(0.25, 0.8, 0.25, 1) both;
         }
-        .quill-group {
-            transform-origin: 50% 90%;
-            animation: write-complex 3s ease-in-out infinite;
-        }
-        .quill-feather {
-            fill: #2c2c2c;
-        }
-        .quill-stem {
-            stroke: rgba(255,255,255,0.15);
-            stroke-width: 1.5;
-            stroke-linecap: round;
-            fill: none;
-        }
-        
-        @keyframes write-complex {
-            0% { transform: rotate(-10deg) translateY(0) scale(1); }
-            15% { transform: rotate(5deg) translateY(-4px) scale(1.02); } /* 提笔 */
-            25% { transform: rotate(-15deg) translateY(0) scale(1); } /* 落笔 */
-            35% { transform: rotate(-5deg) translateY(-2px); }
-            45% { transform: rotate(-20deg) translateY(0); }
-            55% { transform: rotate(-8deg) translateY(-3px); }
-            65% { transform: rotate(-12deg) translateY(0); }
-            75% { transform: rotate(2deg) translateY(-6px) scale(1.05); } /* 思考/停顿 */
-            90% { transform: rotate(2deg) translateY(-6px) scale(1.05); }
-            100% { transform: rotate(-10deg) translateY(0) scale(1); }
-        }
-
-        .ink-splash {
-            fill: #2c2c2c;
-            opacity: 0;
-            animation: ink-splash 3s infinite;
-        }
-        
-        @keyframes ink-splash {
-            0%, 70% { transform: translate(50px, 90px) scale(0); opacity: 0; }
-            75% { opacity: 0.6; }
-            85% { transform: translate(50px, 110px) scale(1.2); opacity: 0; }
-            100% { transform: translate(50px, 110px) scale(1.2); opacity: 0; }
+        @keyframes fade-in-up {
+            from { opacity: 0; transform: translateY(14px); }
+            to { opacity: 1; transform: translateY(0); }
         }
 
         /* 卡片悬浮特效 */
@@ -196,19 +142,19 @@
         }
     </style>
 </head>
-<body class="h-screen flex flex-col md:flex-row overflow-hidden selection:bg-stone-300 selection:text-stone-900">
+<body class="h-screen flex flex-col md:flex-row overflow-hidden selection:bg-stone-200 selection:text-stone-900">
     <div id="app" class="w-full h-full flex relative">
         
         <!-- Toast 提示 -->
         <transition name="toast">
-            <div v-if="toast.show" class="fixed top-5 left-1/2 -translate-x-1/2 bg-white text-stone-700 px-8 py-4 rounded-full shadow-2xl border border-stone-200/80 z-[100] flex items-center gap-4 w-auto max-w-[90vw]">
+            <div v-if="toast.show" class="fixed top-5 left-1/2 -translate-x-1/2 bg-white/95 backdrop-blur text-stone-700 px-6 py-3 rounded-full shadow-xl shadow-stone-900/10 border border-stone-200/80 z-[100] flex items-center gap-3 w-auto max-w-[90vw]">
                 <svg class="icon w-6 h-6 shrink-0" :class="toast.iconColor" viewBox="0 0 24 24" v-html="toast.icon"></svg>
                 <span class="font-semibold text-base whitespace-nowrap overflow-hidden text-ellipsis">{{ toast.message }}</span>
             </div>
         </transition>
 
         <!-- 移动端顶部导航栏 -->
-        <div class="md:hidden absolute top-0 left-0 w-full h-14 bg-[#e8e8e3] border-b border-[#d4d4ce] flex justify-between items-center px-4 z-30 shadow-sm">
+        <div class="md:hidden absolute top-0 left-0 w-full h-14 bg-white/85 backdrop-blur-md border-b border-stone-200/80 flex justify-between items-center px-4 z-30 shadow-sm">
             <button @click="mobileSidebarOpen = true" class="text-stone-600">
                 <svg class="icon w-6 h-6" viewBox="0 0 24 24"><path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/></svg>
             </button>
@@ -222,24 +168,24 @@
         <div v-if="mobileSidebarOpen" @click="mobileSidebarOpen = false" class="fixed inset-0 bg-black/30 backdrop-blur-sm z-40 md:hidden transition-opacity"></div>
 
         <!-- 侧边栏 (响应式) -->
-        <aside class="fixed md:static inset-y-0 left-0 w-5/6 md:w-96 bg-[#e8e8e3] border-r border-[#d4d4ce] flex flex-col shadow-2xl z-50 transform transition-transform duration-300 md:transform-none rounded-r-3xl md:rounded-none overflow-hidden"
+        <aside class="fixed md:static inset-y-0 left-0 w-5/6 md:w-96 bg-white border-r border-stone-200/80 flex flex-col shadow-xl md:shadow-none z-50 transform transition-transform duration-300 md:transform-none rounded-r-3xl md:rounded-none overflow-hidden"
                :class="{'translate-x-0': mobileSidebarOpen, '-translate-x-full': !mobileSidebarOpen && isMobile}">
             
             <!-- 侧边栏头部 (仅桌面端显示) -->
-            <div class="hidden md:flex p-5 border-b border-[#d4d4ce] justify-between items-center bg-[#e0e0db] shrink-0">
+            <div class="hidden md:flex p-5 border-b border-stone-200/80 justify-between items-center bg-white shrink-0">
                 <h1 class="text-2xl font-art text-stone-800 select-none">墨韵 · 造梦</h1>
                 <div class="flex gap-2">
-                   <button @click="showImportExportModal = true" class="text-stone-500 hover:text-stone-800 transition-colors p-2 rounded-full hover:bg-stone-300/50" title="导入/导出">
+                   <button @click="showImportExportModal = true" class="text-stone-500 hover:text-stone-800 transition-colors p-2 rounded-full hover:bg-stone-100" title="导入/导出">
                        <svg class="icon w-5 h-5" viewBox="0 0 24 24"><path d="M9 16h6v-6h4l-7-7-7 7h4zm-4 2h14v2H5z"/></svg>
                    </button>
-                   <button @click="openSettings" class="text-stone-500 hover:text-stone-800 transition-colors p-2 rounded-full hover:bg-stone-300/50" title="设置">
+                   <button @click="openSettings" class="text-stone-500 hover:text-stone-800 transition-colors p-2 rounded-full hover:bg-stone-100" title="设置">
                        <svg class="icon w-5 h-5" viewBox="0 0 24 24"><path d="M19.14,12.94c0.04-0.3,0.06-0.61,0.06-0.94c0-0.32-0.02-0.64-0.07-0.94l2.03-1.58c0.18-0.14,0.23-0.41,0.12-0.61 l-1.92-3.32c-0.12-0.22-0.37-0.29-0.59-0.22l-2.39,0.96c-0.5-0.38-1.03-0.7-1.62-0.94L14.4,2.81c-0.04-0.24-0.24-0.41-0.48-0.41 h-3.84c-0.24,0-0.43,0.17-0.47,0.41L9.25,5.35C8.66,5.59,8.12,5.92,7.63,6.29L5.24,5.33c-0.22-0.08-0.47,0-0.59,0.22L2.74,8.87 C2.62,9.08,2.66,9.34,2.86,9.48l2.03,1.58C4.84,11.36,4.8,11.69,4.8,12s0.02,0.64,0.07,0.94l-2.03,1.58 c-0.18,0.14-0.23,0.41-0.12,0.61l1.92,3.32c0.12,0.22,0.37,0.29,0.59,0.22l2.39-0.96c0.5,0.38,1.03,0.7,1.62,0.94l0.36,2.54 c0.05,0.24,0.24,0.41,0.48,0.41h3.84c0.24,0,0.43-0.17,0.47-0.41l0.36-2.54c0.59-0.24,1.13-0.56,1.62-0.94l2.39,0.96 c0.22,0.08,0.47,0,0.59-0.22l1.92-3.32c0.12-0.22,0.07-0.47-0.12-0.61L19.14,12.94z M12,15.6c-1.98,0-3.6-1.62-3.6-3.6 s1.62-3.6,3.6-3.6s3.6,1.62,3.6,3.6S13.98,15.6,12,15.6z"/></svg>
                    </button>
                 </div>
             </div>
 
              <!-- 移动端侧边栏头部补充 (关闭按钮) -->
-             <div class="flex md:hidden p-4 border-b border-[#d4d4ce] justify-between items-center bg-[#e0e0db] shrink-0">
+             <div class="flex md:hidden p-4 border-b border-stone-200/80 justify-between items-center bg-white shrink-0">
                 <span class="text-xl font-art text-stone-800">墨韵 · 造梦</span>
                 <div class="flex items-center gap-3">
                     <button @click="showImportExportModal = true" class="text-stone-600 p-2" title="导入/导出"><svg class="icon w-5 h-5" viewBox="0 0 24 24"><path d="M9 16h6v-6h4l-7-7-7 7h4zm-4 2h14v2H5z"/></svg></button>
@@ -248,16 +194,13 @@
              </div>
 
             <!-- Tab 导航 -->
-            <div class="flex border-b border-[#d4d4ce] bg-[#e4e4df] shrink-0 relative">
+            <div class="flex gap-1.5 px-3 py-2.5 bg-stone-50/80 border-b border-stone-200/80 shrink-0">
                 <button v-for="tab in tabs" :key="tab.id"
-                        :ref="el => { if(el) tabRefs[tab.id] = el }"
                         @click="currentTab = tab.id"
-                        class="flex-1 py-3 text-sm font-bold uppercase tracking-wider transition-colors relative z-10"
-                        :class="currentTab === tab.id ? 'text-stone-800' : 'text-stone-500 hover:text-stone-700'">
+                        class="flex-1 py-2 text-[13px] rounded-full transition-all duration-200 text-center select-none"
+                        :class="currentTab === tab.id ? 'bg-white text-stone-900 shadow-sm font-semibold' : 'text-stone-400 hover:text-stone-600'">
                     {{ tab.name }}
                 </button>
-                <!-- 丝滑滑块 -->
-                <div class="tab-slider" :style="tabSliderStyle"></div>
             </div>
 
             <!-- 侧边栏内容区 -->
@@ -271,19 +214,19 @@
                                 <div v-for="book in books" :key="book.id"
                                      @click="switchBook(book.id)"
                                      class="relative rounded-2xl p-5 transition-all duration-300 cursor-pointer group overflow-hidden border flex flex-col gap-3 min-h-[140px]"
-                                     :class="currentBookId === book.id ? 'bg-white border-transparent shadow-xl scale-[1.02] z-10' : 'bg-[#f5f5f0] border-[#d4d4ce] hover:border-stone-400 hover:shadow-lg hover:bg-white/60'">
+                                     :class="currentBookId === book.id ? 'bg-white border-stone-300 shadow-md ring-1 ring-stone-900/5 scale-[1.02] z-10' : 'bg-white border-stone-200/80 hover:border-stone-300 hover:shadow-sm'">
                                     
                                     <div class="flex justify-between items-start pl-2">
                                         <div class="flex items-center gap-3 flex-1 overflow-hidden">
                                             <!-- 封面/图标 -->
-                                            <div class="w-12 h-12 rounded-xl flex items-center justify-center text-white font-art text-2xl shrink-0 shadow-md transition-colors"
-                                                 :class="currentBookId === book.id ? 'bg-stone-800' : 'bg-stone-400 group-hover:bg-stone-500'">
+                                            <div class="w-12 h-12 rounded-xl flex items-center justify-center font-serif font-bold text-xl shrink-0 shadow-sm transition-colors"
+                                                 :class="currentBookId === book.id ? 'bg-stone-800 text-white' : 'bg-stone-100 text-stone-500 group-hover:bg-stone-200'">
                                                 {{ (book.title || '无')[0] }}
                                             </div>
                                             
                                             <div class="flex flex-col overflow-hidden gap-0.5">
                                                 <span class="font-bold truncate text-lg transition-colors"
-                                                      :class="currentBookId === book.id ? 'text-stone-900' : 'text-stone-600 group-hover:text-stone-800'">
+                                                      :class="currentBookId === book.id ? 'text-stone-900' : 'text-stone-700 group-hover:text-stone-900'">
                                                     {{ book.title || '无题' }}
                                                 </span>
                                                 <span class="text-[11px] truncate flex items-center gap-2"
@@ -303,7 +246,7 @@
                                     
                                     <!-- 简介 -->
                                     <div class="text-xs line-clamp-4 leading-relaxed pl-2 transition-colors flex-1 mb-2"
-                                         :class="currentBookId === book.id ? 'text-stone-600' : 'text-stone-400 group-hover:text-stone-500'">
+                                         :class="currentBookId === book.id ? 'text-stone-600' : 'text-stone-500 group-hover:text-stone-600'">
                                         {{ book.novel?.worldView || '暂无世界观设定...' }}
                                     </div>
 
@@ -324,7 +267,7 @@
                         </div>
 
                         <div class="px-6 py-4 pt-2 shrink-0">
-                            <button @click="() => { const id = createNewBook(); loadBook(id); }" class="w-full py-3 bg-stone-800 text-white rounded-lg hover:bg-stone-700 active:scale-95 transition-all flex items-center justify-center gap-2 shadow-lg">
+                            <button @click="() => { const id = createNewBook(); loadBook(id); }" class="w-full py-3 bg-stone-800 text-white rounded-xl hover:bg-stone-700 active:scale-95 transition-all flex items-center justify-center gap-2 shadow-md">
                                 <svg class="icon w-4 h-4" viewBox="0 0 24 24"><path d="M13 7h-2v4H7v2h4v4h2v-4h4v-2h-4V7zm-1-5C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"/></svg>
                                 新建书籍
                             </button>
@@ -341,7 +284,7 @@
                                 书名
                             </label>
                             <input v-model="novel.title" @change="saveData" placeholder="无题" 
-                                   class="w-full bg-[#f5f5f0] border-b-2 border-[#d4d4ce] focus:border-stone-600 px-3 py-2 text-lg font-bold transition-colors outline-none placeholder-stone-300">
+                                   class="w-full bg-stone-50 border-b-2 border-stone-200 focus:border-stone-700 px-3 py-2 text-lg font-bold transition-colors outline-none placeholder-stone-300">
                         </div>
                         
                         <div class="space-y-3">
@@ -350,7 +293,7 @@
                                 世界观
                             </label>
                             <textarea v-model="novel.worldView" @change="saveData" placeholder="描述你的故事背景、时代设定、力量体系..." rows="8"
-                                      class="w-full bg-[#f5f5f0] border border-[#d4d4ce] rounded-lg px-4 py-3 text-sm focus:outline-none focus:border-stone-500 focus:ring-1 focus:ring-stone-200 transition-all resize-none leading-relaxed"></textarea>
+                                      class="w-full bg-stone-50 border border-stone-200 rounded-lg px-4 py-3 text-sm focus:outline-none focus:border-stone-500 focus:ring-1 focus:ring-stone-200 transition-all resize-none leading-relaxed"></textarea>
                         </div>
 
                         <div class="space-y-3">
@@ -359,15 +302,15 @@
                                 负面提示词 (不想生成的内容)
                             </label>
                             <textarea v-model="novel.negativePrompt" @change="saveData" placeholder="例如：恐怖、惊悚、现代科技..." rows="3"
-                                      class="w-full bg-[#f5f5f0] border border-[#d4d4ce] rounded-lg px-4 py-3 text-sm focus:outline-none focus:border-stone-500 focus:ring-1 focus:ring-stone-200 transition-all resize-none leading-relaxed"></textarea>
+                                      class="w-full bg-stone-50 border border-stone-200 rounded-lg px-4 py-3 text-sm focus:outline-none focus:border-stone-500 focus:ring-1 focus:ring-stone-200 transition-all resize-none leading-relaxed"></textarea>
                         </div>
 
                         <!-- 成人模式开关 -->
-                        <div class="flex items-center justify-between p-3 bg-stone-200/50 rounded-lg">
+                        <div class="flex items-center justify-between p-3 bg-stone-50 border border-stone-200/80 rounded-xl">
                             <div class="flex flex-col">
                                 <span class="text-sm font-bold text-stone-700 flex items-center gap-2">
                                     成人模式
-                                    <span class="text-[10px] px-1.5 py-0.5 bg-stone-300 text-stone-600 rounded">R18</span>
+                                    <span class="text-[10px] px-1.5 py-0.5 bg-stone-200 text-stone-600 rounded">R18</span>
                                 </span>
                                 <span class="text-xs text-stone-500 mt-0.5">解除内容审查，允许生成 NSFW 内容</span>
                             </div>
@@ -379,7 +322,7 @@
                             </button>
                         </div>
 
-                        <div class="p-4 bg-stone-200/50 rounded-lg text-xs text-stone-500 leading-relaxed flex gap-2">
+                        <div class="p-4 bg-stone-50 border border-stone-200/80 rounded-xl text-xs text-stone-500 leading-relaxed flex gap-2">
                             <svg class="icon w-4 h-4 shrink-0" viewBox="0 0 24 24"><path d="M11 7h2v2h-2zm0 4h2v6h-2zm1-9C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"/></svg>
                             <span>提示：完善的世界观能让 AI 写出更具沉浸感的故事。</span>
                         </div>
@@ -392,11 +335,11 @@
                         <div class="flex-1 overflow-y-auto space-y-3 pb-4">
                             <transition-group name="list">
                                 <div v-for="(char, index) in structuredCharacters" :key="char.id" 
-                                     class="bg-[#f5f5f0] border border-[#d4d4ce] rounded-lg p-3 hover:border-stone-400 transition-all group relative hover-card">
+                                     class="bg-white border border-stone-200 rounded-xl p-3 hover:border-stone-300 transition-all group relative hover-card">
                                     
                                     <div class="flex justify-between items-start mb-2">
                                         <div class="flex items-center gap-2">
-                                            <div class="w-8 h-8 rounded-full bg-stone-300 flex items-center justify-center text-stone-600 font-art text-lg shrink-0">
+                                            <div class="w-8 h-8 rounded-full bg-stone-100 flex items-center justify-center text-stone-500 font-serif font-bold text-base shrink-0">
                                                 {{ char.name[0] || '?' }}
                                             </div>
                                             <input v-model="char.name" @change="saveData" placeholder="角色名" 
@@ -418,7 +361,7 @@
                             </div>
                         </div>
 
-                        <button @click="addCharacter" class="w-full py-3 mt-2 bg-stone-800 text-white rounded-lg hover:bg-stone-700 active:scale-95 transition-all flex items-center justify-center gap-2 shadow-lg">
+                        <button @click="addCharacter" class="w-full py-3 mt-2 bg-stone-800 text-white rounded-xl hover:bg-stone-700 active:scale-95 transition-all flex items-center justify-center gap-2 shadow-md">
                             <svg class="icon w-4 h-4" viewBox="0 0 24 24"><path d="M13 7h-2v4H7v2h4v4h2v-4h4v-2h-4V7zm-1-5C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"/></svg>
                             新建角色
                         </button>
@@ -431,8 +374,8 @@
                         <div class="space-y-1">
                             <transition-group name="list">
                                 <div v-for="(chapter, index) in chapters" :key="index"
-                                     class="rounded-lg md:hover:bg-white md:hover:shadow-sm transition-all border border-transparent md:hover:border-stone-200"
-                                     :class="{'bg-white shadow-sm border-stone-200': currentChapterIndex === index}">
+                                     class="rounded-xl md:hover:bg-stone-50 transition-all border border-transparent"
+                                     :class="{'bg-stone-100 border-stone-200': currentChapterIndex === index}">
                                     
                                     <!-- 标题行 -->
                                     <div class="flex items-center justify-between px-4 py-3 cursor-pointer group">
@@ -478,7 +421,7 @@
                                 <label class="text-xs font-bold text-stone-500 uppercase tracking-wider">查找内容</label>
                                 <div class="relative">
                                     <input v-model="searchQuery" @keyup.enter="performSearch" placeholder="输入要查找的文字..."
-                                           class="w-full bg-[#f5f5f0] border border-[#d4d4ce] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-stone-500 focus:ring-1 focus:ring-stone-200 transition-all">
+                                           class="w-full bg-stone-50 border border-stone-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-stone-500 focus:ring-1 focus:ring-stone-200 transition-all">
                                     <button v-if="searchQuery" @click="searchQuery = ''; searchResults = []" class="absolute right-2 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600">
                                         <svg class="icon w-4 h-4" viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
                                     </button>
@@ -489,17 +432,17 @@
                             <div class="space-y-2">
                                 <label class="text-xs font-bold text-stone-500 uppercase tracking-wider">替换为</label>
                                 <input v-model="replaceQuery" placeholder="输入替换后的文字..."
-                                       class="w-full bg-[#f5f5f0] border border-[#d4d4ce] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-stone-500 focus:ring-1 focus:ring-stone-200 transition-all">
+                                       class="w-full bg-stone-50 border border-stone-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-stone-500 focus:ring-1 focus:ring-stone-200 transition-all">
                             </div>
 
                             <!-- 操作按钮 -->
                             <div class="grid grid-cols-2 gap-2">
                                 <button @click="performSearch" class="bg-stone-800 text-white py-2 rounded-lg text-xs hover:bg-stone-700 transition-colors">查找全部</button>
-                                <button @click="replaceAll" :disabled="!searchResults.length" class="bg-stone-200 text-stone-800 py-2 rounded-lg text-xs hover:bg-stone-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">全部替换</button>
+                                <button @click="replaceAll" :disabled="!searchResults.length" class="bg-white border border-stone-200 text-stone-600 py-2 rounded-lg text-xs hover:bg-stone-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">全部替换</button>
                             </div>
                             
                             <div class="flex gap-2 border-t border-stone-200 pt-3 mt-2" v-if="searchResults.length > 0">
-                                <button @click="replaceCurrentMatch" class="flex-1 bg-stone-200 text-stone-800 py-2 rounded-lg text-xs hover:bg-stone-300 transition-colors">替换当前</button>
+                                <button @click="replaceCurrentMatch" class="flex-1 bg-white border border-stone-200 text-stone-600 py-2 rounded-lg text-xs hover:bg-stone-50 transition-colors">替换当前</button>
                                 <div class="flex gap-1">
                                     <button @click="prevMatch" class="px-3 py-2 bg-stone-100 rounded-lg hover:bg-stone-200 text-stone-600 disabled:opacity-50" :disabled="currentMatchIndex <= 0">
                                         <svg class="icon w-4 h-4" viewBox="0 0 24 24"><path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z" transform="rotate(90 12 12)"/></svg>
@@ -536,8 +479,8 @@
             </div>
             
             <!-- 侧边栏底部 -->
-            <div class="px-3 py-1.5 md:py-2 border-t border-[#d4d4ce] bg-[#e0e0db] shrink-0">
-                <button @click="clearAll" class="w-full py-1 px-3 text-stone-600 hover:bg-stone-300/50 rounded transition-colors text-sm flex items-center justify-center gap-1.5">
+            <div class="px-3 py-1.5 md:py-2 border-t border-stone-200/80 bg-white shrink-0">
+                <button @click="clearAll" class="w-full py-1 px-3 text-stone-500 hover:text-stone-700 hover:bg-stone-100 rounded transition-colors text-sm flex items-center justify-center gap-1.5">
                     <svg class="icon w-4 h-4" viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>
                      清空所有内容
                 </button>
@@ -545,7 +488,7 @@
         </aside>
 
         <!-- 主内容区 -->
-        <main class="flex-1 h-full overflow-y-auto relative scroll-smooth bg-[#f5f5f0] pt-14 md:pt-0" ref="mainScroll">
+        <main class="flex-1 h-full overflow-y-auto relative scroll-smooth bg-[#fafafa] pt-14 md:pt-0" ref="mainScroll">
             <div class="max-w-4xl mx-auto px-4 md:px-12 py-8 md:py-16 min-h-full flex flex-col">
                 
                 <!-- 标题展示 -->
@@ -567,11 +510,11 @@
                 <div class="space-y-6 flex-1 pb-24">
                     <transition-group name="staggered-list" tag="div" :css="false" @before-enter="onListBeforeEnter" @enter="onListEnter" @leave="onListLeave">
                         <div v-for="(chapter, index) in chapters" :key="chapter.id || index" :data-index="index" :id="'chapter-' + index"
-                             class="bg-white shadow-sm border border-stone-200 rounded-xl overflow-hidden transition-all duration-300 hover:shadow-md mb-6">
+                             class="bg-white shadow-sm border border-stone-200 rounded-2xl overflow-hidden transition-all duration-300 hover:shadow-md mb-6">
                             <!-- 章节头 -->
-                            <div class="bg-stone-50/50 px-4 md:px-8 py-4 md:py-5 border-b border-stone-100 flex justify-between items-center cursor-pointer hover:bg-stone-100 transition-colors select-none" @click="toggleChapter(index)">
+                            <div class="bg-gradient-to-b from-white to-stone-50 px-4 md:px-8 py-4 md:py-5 border-b border-stone-100 flex justify-between items-center cursor-pointer hover:from-stone-50 hover:to-stone-100 transition-colors select-none" @click="toggleChapter(index)">
                                 <div class="flex items-center gap-2 md:gap-4 overflow-hidden">
-                                    <span class="text-stone-300 font-art text-xl md:text-2xl shrink-0">{{ index + 1 }}</span>
+                                    <span class="text-stone-300 font-serif font-semibold text-xl md:text-2xl shrink-0">{{ index + 1 }}</span>
                                     <h2 class="text-base md:text-xl font-bold text-stone-800 truncate">{{ chapter.title }}</h2>
                                 </div>
                                 <div class="flex items-center gap-2 md:gap-4 shrink-0">
@@ -592,13 +535,13 @@
                                     <!-- 编辑模式 -->
                                     <div v-else class="px-4 md:px-12 py-6 md:py-12 bg-white space-y-4">
                                         <div class="flex items-center gap-3 border-b border-stone-200 pb-3">
-                                            <span class="text-stone-400 font-art text-xl shrink-0">第 {{ index + 1 }} 章</span>
+                                            <span class="text-stone-400 font-serif font-semibold text-xl shrink-0">第 {{ index + 1 }} 章</span>
                                             <input v-model="chapter.tempTitle"
                                                    class="flex-1 bg-transparent text-xl font-bold text-stone-800 focus:outline-none placeholder-stone-300"
                                                    placeholder="章节标题">
                                         </div>
                                         <textarea v-model="chapter.tempContent" rows="20"
-                                                  class="w-full p-4 bg-stone-50 border border-stone-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-stone-300 font-serif text-base md:text-lg leading-loose resize-y text-stone-800"></textarea>
+                                                  class="w-full p-4 bg-stone-50 border border-stone-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-stone-200 font-serif text-base md:text-lg leading-loose resize-y text-stone-800"></textarea>
                                     </div>
                                     
                                     <!-- 章节操作 -->
@@ -607,7 +550,7 @@
                                             <button @click.stop="saveChapterEdit(index)" class="text-xs text-white hover:bg-stone-700 px-4 py-1.5 rounded-md bg-stone-800 transition-colors flex items-center gap-1 whitespace-nowrap shadow-sm">
                                                 <svg class="icon w-3 h-3" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg> 保存
                                             </button>
-                                            <button @click.stop="cancelChapterEdit(index)" class="text-xs text-stone-600 hover:bg-stone-200 px-4 py-1.5 rounded-md bg-white border border-stone-200 transition-colors flex items-center gap-1 whitespace-nowrap">
+                                            <button @click.stop="cancelChapterEdit(index)" class="text-xs text-stone-600 hover:text-stone-800 px-4 py-1.5 rounded-md bg-white border border-stone-200 hover:bg-stone-50 transition-colors flex items-center gap-1 whitespace-nowrap">
                                                 <svg class="icon w-3 h-3" viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg> 取消
                                             </button>
                                         </template>
@@ -616,13 +559,13 @@
                                                 <svg class="icon w-3 h-3" viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg> 编辑
                                             </button>
                                             <div class="w-[1px] h-5 bg-stone-200 mx-1 self-center"></div>
-                                            <button @click.stop="copyChapter(index)" class="text-xs text-stone-500 hover:text-stone-800 px-3 py-1.5 rounded-md bg-stone-100 hover:bg-stone-200 transition-colors flex items-center gap-1 whitespace-nowrap">
+                                            <button @click.stop="copyChapter(index)" class="text-xs text-stone-600 hover:text-stone-800 px-3 py-1.5 rounded-md bg-white border border-stone-200 hover:bg-stone-50 transition-colors flex items-center gap-1 whitespace-nowrap">
                                                 <svg class="icon w-3 h-3" viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg> 复制
                                             </button>
-                                            <button @click.stop="deleteChapter(index)" class="text-xs text-red-400 hover:text-red-600 px-3 py-1.5 rounded-md bg-red-50 hover:bg-red-100 transition-colors flex items-center gap-1 whitespace-nowrap">
+                                            <button @click.stop="deleteChapter(index)" class="text-xs text-red-500 hover:text-red-600 px-3 py-1.5 rounded-md bg-white border border-red-200 hover:bg-red-50 transition-colors flex items-center gap-1 whitespace-nowrap">
                                                 <svg class="icon w-3 h-3" viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg> 删除
                                             </button>
-                                            <button @click.stop="regenerateChapter(index)" class="text-xs text-stone-500 hover:text-stone-700 px-3 py-1.5 rounded-md bg-stone-200 hover:bg-stone-300 transition-colors flex items-center gap-1 whitespace-nowrap">
+                                            <button @click.stop="regenerateChapter(index)" class="text-xs text-stone-600 hover:text-stone-800 px-3 py-1.5 rounded-md bg-white border border-stone-200 hover:bg-stone-50 transition-colors flex items-center gap-1 whitespace-nowrap">
                                                 <svg class="icon w-3 h-3" viewBox="0 0 24 24"><path d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg> 重写
                                             </button>
                                         </template>
@@ -634,32 +577,17 @@
 
                     <!-- 生成中状态 -->
                     <transition name="fade">
-                        <div v-if="isGenerating" class="bg-white shadow-lg border border-stone-200 rounded-xl p-6 md:p-10 relative overflow-hidden">
-                            <div class="flex flex-col items-center justify-center mb-8 md:mb-10 space-y-6">
-                                <svg class="quill-pen-svg" viewBox="0 0 100 100">
-                                        <g class="quill-group">
-                                            <!-- 羽毛主体 -->
-                                            <path class="quill-feather" d="M50 95 C 50 95, 60 65, 80 45 C 90 35, 85 15, 65 10 C 55 7, 45 15, 40 30 C 35 45, 45 65, 50 95 Z" />
-                                            <!-- 笔杆细节 -->
-                                            <path class="quill-stem" d="M50 90 Q 55 50 65 10" />
-                                            <!-- 羽毛纹理 -->
-                                            <path class="quill-stem" d="M52 80 Q 65 60 75 45" style="stroke-width: 0.5; opacity: 0.5;" />
-                                            <path class="quill-stem" d="M48 70 Q 40 50 42 35" style="stroke-width: 0.5; opacity: 0.5;" />
-                                        </g>
-                                        <!-- 墨点 -->
-                                        <circle class="ink-splash" cx="0" cy="0" r="3" />
-                                </svg>
-                                <div class="text-center space-y-3">
-                                    <p class="text-lg md:text-xl font-art text-stone-800">笔耕不辍，思如泉涌</p>
-                                    <div class="space-y-1">
-                                        <p class="text-stone-400 text-xs font-serif tracking-widest uppercase">AI 正在构思...</p>
-                                        <p class="text-stone-400 text-xs font-mono">{{ settings.model }}</p>
-                                    </div>
+                        <div v-if="isGenerating" class="bg-white shadow-sm border border-stone-200 rounded-2xl p-6 md:p-10 relative overflow-hidden">
+                            <div class="flex flex-col items-center justify-center mb-8 md:mb-10 space-y-4">
+                                <div class="w-12 h-12 rounded-full border-2 border-stone-200 border-t-stone-800 animate-spin"></div>
+                                <div class="text-center space-y-1.5">
+                                    <p class="text-sm md:text-base font-medium text-stone-700">AI 正在构思...</p>
+                                    <p class="text-stone-400 text-xs font-mono">{{ settings.model }}</p>
                                 </div>
                             </div>
                             
                             <!-- 实时流式内容 -->
-                            <div v-if="streamContent" class="prose prose-stone max-w-none font-serif text-base md:text-lg text-stone-800 opacity-80 border-t border-stone-100 pt-6 md:pt-8">
+                            <div v-if="streamContent" class="prose prose-stone max-w-none font-serif text-base md:text-lg text-stone-800 opacity-90 border-t border-stone-100 pt-6 md:pt-8">
                                 <div v-html="renderMarkdown(streamContent)"></div>
                             </div>
                         </div>
@@ -668,7 +596,7 @@
 
                 <!-- 底部控制栏 -->
                 <div class="sticky bottom-4 md:bottom-8 z-10">
-                    <div class="bg-white/90 backdrop-blur-md shadow-2xl border border-stone-200/50 rounded-2xl p-3 flex flex-col gap-3 max-w-2xl mx-auto transition-all duration-300 hover:shadow-3xl">
+                    <div class="bg-white/85 backdrop-blur-md shadow-lg shadow-stone-900/5 border border-stone-200/80 rounded-2xl p-3 flex flex-col gap-3 max-w-2xl mx-auto transition-all duration-300 hover:shadow-xl">
                         <!-- 输入提示词 -->
                         <div class="relative group">
                             <textarea v-model="nextChapterPrompt" placeholder="下一章剧情走向..." rows="2" 
@@ -726,8 +654,8 @@
                             </div>
 
                             <button @click="startGeneration" :disabled="!settings.apiKey"
-                                    class="w-full md:w-auto text-white px-6 py-2 rounded-xl font-serif tracking-widest shadow-lg transform active:scale-95 transition-all flex items-center justify-center gap-2 group text-sm"
-                                    :class="isGenerating ? 'bg-red-700 hover:bg-red-800' : 'bg-stone-800 hover:bg-stone-700 disabled:bg-stone-300 disabled:cursor-not-allowed'">
+                                    class="w-full md:w-auto text-white px-6 py-2 rounded-xl font-medium shadow-md transform active:scale-95 transition-all flex items-center justify-center gap-2 group text-sm"
+                                    :class="isGenerating ? 'bg-red-600 hover:bg-red-700' : 'bg-stone-800 hover:bg-stone-700 disabled:bg-stone-300 disabled:cursor-not-allowed'">
                                 <span v-if="isGenerating">停止生成</span>
                                 <span v-else>提笔续写</span>
                                 <svg v-if="!isGenerating" class="icon w-4 h-4 group-hover:rotate-12 transition-transform" viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
@@ -752,7 +680,7 @@
         </transition>
         <transition name="pop">
             <div v-if="showInspirationModal" class="fixed inset-0 z-[80] flex items-center justify-center p-2 md:p-4" @click.self="showInspirationModal = false">
-                <div class="bg-white rounded-2xl shadow-2xl w-[95%] md:w-full max-w-2xl h-[85vh] max-h-[85vh] flex flex-col overflow-hidden border border-stone-200">
+                <div class="bg-white rounded-2xl shadow-xl shadow-stone-900/10 w-[95%] md:w-full max-w-2xl h-[85vh] max-h-[85vh] flex flex-col overflow-hidden border border-stone-200/80">
                     <!-- 头部 -->
                     <div class="px-4 py-3 border-b border-stone-200 bg-stone-50 flex justify-between items-center shrink-0">
                         <div class="flex items-center gap-3">
@@ -782,7 +710,7 @@
                         </div>
                         <template v-else-if="inspirations.length > 0">
                             <div v-for="(dir, i) in inspirations" :key="i" @click="useInspiration(dir)"
-                                 class="bg-white border border-stone-200 rounded-xl p-4 md:p-5 cursor-pointer transition-all hover:border-stone-400 hover:shadow-md group">
+                                 class="bg-white border border-stone-200 rounded-2xl p-4 md:p-5 cursor-pointer transition-all hover:border-stone-300 hover:shadow-sm group">
                                 <div class="flex items-center gap-2 mb-2">
                                     <span class="text-[10px] px-1.5 py-0.5 bg-stone-800 text-white rounded font-bold">走向 {{ i + 1 }}</span>
                                     <span class="font-bold text-stone-800 group-hover:text-stone-600">{{ dir.title }}</span>
@@ -815,7 +743,7 @@
         </transition>
         <transition name="pop">
             <div v-if="showDeleteCharModal" class="fixed inset-0 z-[60] flex items-center justify-center p-4" @mousedown.self="showDeleteCharModal = false">
-                <div class="bg-white rounded-xl shadow-2xl w-full max-w-sm overflow-hidden p-6 space-y-6">
+                <div class="bg-white rounded-2xl shadow-xl shadow-stone-900/10 w-full max-w-sm overflow-hidden p-6 space-y-6 border border-stone-200/80">
                     <div class="text-center space-y-2">
                         <div class="w-12 h-12 bg-red-100 text-red-500 rounded-full flex items-center justify-center mx-auto mb-4">
                             <svg class="icon w-6 h-6" viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>
@@ -837,7 +765,7 @@
         </transition>
         <transition name="pop">
             <div v-if="showConfirmModal" class="fixed inset-0 z-[70] flex items-center justify-center p-4" @mousedown.self="cancelConfirm">
-                <div class="bg-white rounded-xl shadow-2xl w-full max-w-sm overflow-hidden p-6 space-y-6">
+                <div class="bg-white rounded-2xl shadow-xl shadow-stone-900/10 w-full max-w-sm overflow-hidden p-6 space-y-6 border border-stone-200/80">
                     <div class="text-center space-y-2">
                         <div v-if="confirmModalConfig.icon" class="w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4" :class="confirmModalConfig.iconBg">
                             <svg class="icon w-6 h-6" :class="confirmModalConfig.iconColor" viewBox="0 0 24 24" v-html="confirmModalConfig.icon"></svg>
@@ -859,7 +787,7 @@
         </transition>
         <transition name="pop">
             <div v-if="showSettings" class="fixed inset-0 z-50 flex items-center justify-center p-4" @mousedown.self="showSettings = false">
-                <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg h-[90vh] max-h-[90vh] overflow-hidden flex flex-col">
+                <div class="bg-white rounded-2xl shadow-xl shadow-stone-900/10 w-full max-w-lg h-[90vh] max-h-[90vh] overflow-hidden flex flex-col border border-stone-200/80">
                     <div class="px-6 py-4 border-b border-stone-100 flex justify-between items-center bg-stone-50">
                         <h3 class="text-lg font-bold text-stone-800 flex items-center gap-2">
                             <svg class="icon w-5 h-5" viewBox="0 0 24 24"><path d="M3 17v2h6v-2H3zM3 5v2h10V5H3zm10 16v-2h8v-2h-8v-2h-2v6h2zM7 9v2H3v2h4v2h2V9H7zm14 4v-2H11v2h10zm-6-4h2V7h4V5h-4V3h-2v6z"/></svg> 设置
@@ -966,7 +894,7 @@
         </transition>
         <transition name="pop">
             <div v-if="showImportExportModal" class="fixed inset-0 z-[60] flex items-center justify-center p-4" @mousedown.self="showImportExportModal = false">
-                <div class="bg-white rounded-xl shadow-2xl w-full max-w-xs overflow-hidden p-6 space-y-4 relative">
+                <div class="bg-white rounded-2xl shadow-xl shadow-stone-900/10 w-full max-w-xs overflow-hidden p-6 space-y-4 relative border border-stone-200/80">
                     <button @click="showImportExportModal = false" class="absolute top-3 right-3 text-stone-400 hover:text-stone-600 p-1 rounded-full hover:bg-stone-100 transition-colors">
                         <svg class="icon w-5 h-5" viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
                     </button>
@@ -975,11 +903,11 @@
                         <p class="text-xs text-stone-400">导入或导出你的小说</p>
                     </div>
                     <div class="flex flex-col gap-3">
-                        <button @click="triggerImport" class="w-full py-3 bg-stone-800 text-white rounded-lg hover:bg-stone-700 active:scale-95 transition-all flex items-center justify-center gap-2 shadow-lg">
+                        <button @click="triggerImport" class="w-full py-3 bg-stone-800 text-white rounded-xl hover:bg-stone-700 active:scale-95 transition-all flex items-center justify-center gap-2 shadow-md">
                             <svg class="icon w-4 h-4" viewBox="0 0 24 24"><path d="M9 16h6v-6h4l-7-7-7 7h4zm-4 2h14v2H5z" transform="scale(1, -1) translate(0, -24)"/></svg>
                             导入 TXT
                         </button>
-                        <button @click="exportBook" class="w-full py-3 bg-stone-100 text-stone-600 rounded-lg hover:bg-stone-200 active:scale-95 transition-colors flex items-center justify-center gap-2">
+                        <button @click="exportBook" class="w-full py-3 bg-white text-stone-700 border border-stone-200 rounded-xl hover:bg-stone-50 active:scale-95 transition-colors flex items-center justify-center gap-2">
                             <svg class="icon w-4 h-4" viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
                             导出 TXT
                         </button>
@@ -993,7 +921,7 @@
     </div>
 
    <script>
-        const { createApp, ref, computed, onMounted, nextTick, watch, onUnmounted } = Vue;
+        const { createApp, ref, computed, onMounted, nextTick, onUnmounted } = Vue;
 
         createApp({
             setup() {
@@ -1041,10 +969,6 @@
                 const importFileInput = ref(null);
                 const currentChapterIndex = ref(-1);
                 const wordCountTarget = ref(2500);
-
-                // Tab 动画状态
-                const tabRefs = ref({});
-                const tabSliderStyle = ref({ left: '0px', width: '0px' });
 
                 // 搜索状态
                 const searchQuery = ref('');
@@ -1110,22 +1034,6 @@
                     if (structuredCharacters.value.length === 0) return "暂无具体角色设定";
                     return structuredCharacters.value.map(c => `- 姓名：${c.name}\n  描述：${c.desc}`).join('\n');
                 });
-
-                // 监听 Tab 变化更新滑块
-                watch(currentTab, () => {
-                    nextTick(() => updateTabSlider());
-                });
-
-                // 方法
-                const updateTabSlider = () => {
-                    const activeTabEl = tabRefs.value[currentTab.value];
-                    if (activeTabEl) {
-                        tabSliderStyle.value = {
-                            left: activeTabEl.offsetLeft + 'px',
-                            width: activeTabEl.offsetWidth + 'px'
-                        };
-                    }
-                };
 
                 // 列表交错动画钩子
                 const onListBeforeEnter = (el) => {
@@ -2488,8 +2396,6 @@ ${charPrompt}
                 onMounted(() => {
                     loadData().then(() => syncRPHubAndModels(false));
                     window.addEventListener('resize', handleResize);
-                    // 初始化 Tab 滑块
-                    nextTick(() => updateTabSlider());
                 });
 
                 onUnmounted(() => {
@@ -2512,7 +2418,7 @@ ${charPrompt}
                     toggleAdultMode,
                     searchQuery, replaceQuery, searchResults, currentMatchIndex, hasSearched,
                     performSearch, replaceCurrentMatch, replaceAll, nextMatch, prevMatch, jumpToMatch,
-                    tabRefs, tabSliderStyle, onListBeforeEnter, onListEnter, onListLeave,
+                    onListBeforeEnter, onListEnter, onListLeave,
                     books, currentBookId, createNewBook, switchBook, deleteBook
                 };
             }
