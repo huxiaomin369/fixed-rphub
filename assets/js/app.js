@@ -839,7 +839,8 @@ createApp({
         window.addEventListener('message', (event) => {
             if (event.data && event.data.type === 'WORKSHOP_READY') {
                 syncSettingsToGenerator();
-            } else if (event.data && event.data.type === 'REQUEST_RPHUB_API_SETTINGS' && event.data.requestId) {
+            } else if (event.data && event.data.type === 'REQUEST_RPHUB_API_SETTINGS' && event.data.requestId
+                && event.source && event.origin === window.location.origin) {
                 // Reply to novel/index.html settings request (RPHUB_API_SETTINGS protocol)
                 const novelProviders = apiProviderOptions.map((provider) => ({
                     id: provider.id,
