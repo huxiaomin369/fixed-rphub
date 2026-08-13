@@ -66,4 +66,4 @@ powershell -ExecutionPolicy Bypass -File scripts\build.ps1
 ## 默认角色卡
 
 放入你的卡：把命名好的 PNG v2 卡拷到 cards/default/（目录已 gitignore，不会提交）
-重新生成：python3 build_default_cards.py（会输出每张卡的 ok/skip 摘要），把 assets/js/default-cards.js 的变化提交
+重新生成：python build_default_cards.py（会输出每张卡的 ok/skip 摘要），把 assets/js/default-cards.js 的变化提交

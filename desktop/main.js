@@ -31,9 +31,12 @@ function createWindow() {
     },
   });
 
+  // 打包后 main.js 位于 app.asar 内，__dirname 解析为 .../resources/app.asar，
+  // 拼接出的路径含 app.asar，Chromium file 协议才能读取归档内文件
+  // （写成 resources/app/... 不会自动重定向到 app.asar，会白屏）
   const indexPath = isDev
     ? path.join(__dirname, '..', 'index.html')
-    : path.join(process.resourcesPath, 'app', 'index.html');
+    : path.join(__dirname, 'dist-stage', 'index.html');
 
   win.loadFile(indexPath);
 

@@ -1,7 +1,7 @@
 {
-  "name": "roleplay-hub-desktop",
+  "name": "ai-roleplay-desktop",
   "version": "0.1.0",
-  "description": "Electron desktop wrapper for RP-Hub",
+  "description": "Electron desktop wrapper for ai-roleplay",
   "main": "main.js",
   "private": true,
   "scripts": {
@@ -17,8 +17,8 @@
     "electron-builder": "^25.0.0"
   },
   "build": {
-    "appId": "com.rphub.desktop",
-    "productName": "Roleplay Hub",
+    "appId": "com.ai.roleplay",
+    "productName": "AI Roleplay",
     "directories": {
       "output": "release",
       "buildResources": "build"
@@ -34,7 +34,7 @@
         { "target": "nsis", "arch": ["x64"] },
         { "target": "portable", "arch": ["x64"] }
       ],
-      "icon": "build/applogo.png"
+      "icon": "build/icon.ico"
     },
     "nsis": {
       "oneClick": false,
@@ -44,7 +44,7 @@
       "createStartMenuShortcut": true
     },
     "portable": {
-      "artifactName": "RoleplayHub-Portable-${version}.exe"
+      "artifactName": "AIRoleplay-Portable-${version}.exe"
     }
   }
 }
