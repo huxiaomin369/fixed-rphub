@@ -2141,27 +2141,78 @@
                         if (!response.ok) throw new Error(response.statusText);
                         const data = await response.json();
                         let content = data.choices[0].message.content || '';
-                        content = content.replace(/```json/g, '').replace(/```/g, '').trim();
+                        content = content.replace(/```[a-zA-Z]*\s*/g, '').trim();
 
-                        let parsed;
-                        try {
-                            parsed = JSON.parse(content);
-                        } catch (parseError) {
-                            // 回退: 按 "###" 或数字序号分段
-                            parsed = [];
-                            const blocks = content.split(/\n(?=###|第?\s*\d+[.、]|走向\s*\d+)/).map(b => b.trim()).filter(Boolean);
+                        const toText = (v) => {
+                            if (v == null) return '';
+                            if (typeof v === 'string') return v.trim();
+                            if (typeof v === 'number' || typeof v === 'boolean') return String(v);
+                            return JSON.stringify(v);
+                        };
+                        const parseDirections = (text) => {
+                            // 1. 最外层 JSON 数组整体解析(容忍前后杂讯/对象包裹)
+                            let arrayText = null;
+                            const start = text.indexOf('[');
+                            const end = text.lastIndexOf(']');
+                            if (start !== -1 && end > start) {
+                                arrayText = text.slice(start, end + 1);
+                                try {
+                                    const arr = JSON.parse(arrayText);
+                                    if (Array.isArray(arr)) return arr;
+                                } catch (_) {}
+                            }
+                            // 2. 对象串逐项解析: 无数组包裹的 {...},{...} 或数组整体解析失败后的逐项提取
+                            const seamText = arrayText ? arrayText.slice(1, -1) : text;
+                            const items = [];
+                            const candidates = seamText.split(/\}\s*,?\s*\{/);
+                            for (let i = 0; i < candidates.length; i++) {
+                                let candidate = candidates[i].trim();
+                                if (!candidate.startsWith('{')) candidate = '{' + candidate;
+                                if (!candidate.endsWith('}')) candidate += '}';
+                                candidate = candidate.replace(/,\s*}/g, '}');
+                                try {
+                                    const obj = JSON.parse(candidate);
+                                    if (obj && typeof obj === 'object' && !Array.isArray(obj)) items.push(obj);
+                                } catch (_) {}
+                            }
+                            if (items.length) return items;
+                            // 3. 单个对象(非数组)
+                            try {
+                                const obj = JSON.parse(text);
+                                if (obj && typeof obj === 'object' && !Array.isArray(obj)) return [obj];
+                            } catch (_) {}
+                            // 4. 散文回退: ### / 数字序号 / 走向 N 分段
+                            const prose = [];
+                            const blocks = text.split(/\n(?=###|第?\s*\d+[.、]|走向\s*\d+)/).map(b => b.trim()).filter(Boolean);
                             blocks.forEach(block => {
                                 const lines = block.split('\n').map(l => l.trim()).filter(Boolean);
                                 if (!lines.length) return;
                                 let title = lines[0].replace(/^#+\s*/, '').replace(/^第?\s*\d+[.、]\s*/, '').replace(/^走向\s*\d+[:：]?\s*/, '');
                                 let outline = lines.slice(1).join('\n');
-                                if (!outline) { outline = title; title = `走向 ${parsed.length + 1}`; }
-                                parsed.push({ title, outline });
+                                if (!outline) { outline = title; title = `走向 ${prose.length + 1}`; }
+                                prose.push({ title, outline });
                             });
+                            return prose;
+                        };
+                        const rawItems = parseDirections(content);
+                        let inspirationList = [];
+                        if (Array.isArray(rawItems) && rawItems.length) {
+                            inspirationList = rawItems
+                                .map(d => {
+                                    if (typeof d === 'string') return { title: '', outline: d.trim() };
+                                    if (!d || typeof d !== 'object') return null;
+                                    return {
+                                        title: toText(d.title ?? d['标题']),
+                                        outline: toText(d.outline ?? d['大纲'] ?? d.content ?? d['内容'])
+                                    };
+                                })
+                                .filter(d => d && (d.title || d.outline))
+                                .slice(0, 5);
+                            inspirationList = inspirationList.map((d, i) => d.title ? d : { ...d, title: `走向 ${i + 1}` });
                         }
-                        if (Array.isArray(parsed) && parsed.length) {
-                            inspirations.value = parsed.filter(d => d && (d.title || d.outline)).slice(0, 5);
-                            showToast(`已生成 ${inspirations.value.length} 条剧情走向`, 'success');
+                        if (inspirationList.length) {
+                            inspirations.value = inspirationList;
+                            showToast(`已生成 ${inspirationList.length} 条剧情走向`, 'success');
                         } else {
                             throw new Error('AI 返回内容无法解析');
                         }
