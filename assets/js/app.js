@@ -839,6 +839,22 @@ createApp({
         window.addEventListener('message', (event) => {
             if (event.data && event.data.type === 'WORKSHOP_READY') {
                 syncSettingsToGenerator();
+            } else if (event.data && event.data.type === 'REQUEST_RPHUB_API_SETTINGS' && event.data.requestId) {
+                // Reply to novel/index.html settings request (RPHUB_API_SETTINGS protocol)
+                const novelProviders = apiProviderOptions.map((provider) => ({
+                    id: provider.id,
+                    name: provider.name,
+                    apiUrl: provider.apiUrl,
+                    icon: provider.icon
+                }));
+                novelProviders.push({ id: 'custom', name: '自定义', apiUrl: settings.customApiUrl || '' });
+                novelProviders.push({ id: 'custom2', name: '自定义 2', apiUrl: settings.customApiUrl2 || '' });
+                event.source.postMessage({
+                    type: 'RPHUB_API_SETTINGS',
+                    requestId: event.data.requestId,
+                    settings: JSON.parse(JSON.stringify(settings)),
+                    providers: novelProviders
+                }, '*');
             }
         });
 
@@ -1538,6 +1554,15 @@ createApp({
             syncSettingsToGenerator();
         };
 
+        // Novel State
+        const isNovelLoading = ref(true);
+        const novelUrl = ref('./novel/index.html');
+
+        const onNovelLoad = () => {
+            isNovelLoading.value = false;
+            console.log('%c[Novel] Novel Studio Iframe Loaded', 'color: #10b981; font-weight: bold;');
+        };
+
         // Square State
         const isSquareLoading = ref(true);
         const squareUrl = ref('https://rphforum.zeabur.app/');
@@ -1554,6 +1579,9 @@ createApp({
                 isGeneratorLoading.value = true;
                 // Add timestamp to force refresh
                 generatorUrl.value = `./character/index.html?t=${Date.now()}`;
+            } else if (newView === 'novel') {
+                isNovelLoading.value = true;
+                novelUrl.value = `./novel/index.html?t=${Date.now()}`;
             } else if (newView === 'square') {
                 isSquareLoading.value = true;
                 // Add timestamp to force refresh
@@ -10231,6 +10259,7 @@ ${uiTemplateAnalysisSection}
             editingCharacter, editingPreset, editingUiTemplate, toasts, chatContainer, isChatFullscreen, isMobileKeyboardOpen, inputBox, messageElements,
             lastUserMessageIndex, // Expose to template
             isGeneratorLoading, generatorUrl, onGeneratorLoad, syncSettingsToGenerator, // Generator exports
+            isNovelLoading, novelUrl, onNovelLoad, // Novel exports
             isSquareLoading, squareUrl, onSquareLoad, // Square exports
             editorTab, characterDisplayLimit, displayedCharacters, loadMoreCharacters,
             isAutoImageGenEnabled,
