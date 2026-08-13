@@ -5,7 +5,7 @@ const DEFAULT_SRC = path.join(__dirname, '..');
 const DEFAULT_DST = path.join(__dirname, 'dist-stage');
 
 // 顶层需要拷贝的条目
-const TOP_LEVEL_COPY = ['index.html', 'assets', 'character'];
+const TOP_LEVEL_COPY = ['index.html', 'assets', 'character', 'novel'];
 
 // 任何层级都要跳过的目录/文件名
 const SKIP_NAMES = new Set([

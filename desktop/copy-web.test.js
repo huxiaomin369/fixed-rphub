@@ -12,6 +12,8 @@ function makeFakeSource() {
   fs.writeFileSync(path.join(tmp, 'assets', 'js', 'app.js'), 'console.log(1)');
   fs.mkdirSync(path.join(tmp, 'character'), { recursive: true });
   fs.writeFileSync(path.join(tmp, 'character', 'index.html'), '<html></html>');
+  fs.mkdirSync(path.join(tmp, 'novel'), { recursive: true });
+  fs.writeFileSync(path.join(tmp, 'novel', 'index.html'), '<html></html>');
   fs.writeFileSync(path.join(tmp, 'proxy-worker.js'), '// worker');
   fs.mkdirSync(path.join(tmp, 'node_modules'), { recursive: true });
   fs.writeFileSync(path.join(tmp, 'node_modules', 'junk.js'), 'junk');
@@ -22,13 +24,14 @@ function makeFakeSource() {
   return tmp;
 }
 
-it('copyWeb copies index.html, assets, character to dst', () => {
+it('copyWeb copies index.html, assets, character, novel to dst', () => {
   const src = makeFakeSource();
   const dst = fs.mkdtempSync(path.join(os.tmpdir(), 'copy-web-dst-'));
   copyWeb({ src, dst });
   assert.ok(fs.existsSync(path.join(dst, 'index.html')), 'index.html should exist');
   assert.ok(fs.existsSync(path.join(dst, 'assets', 'js', 'app.js')), 'assets/js/app.js should exist');
   assert.ok(fs.existsSync(path.join(dst, 'character', 'index.html')), 'character/index.html should exist');
+  assert.ok(fs.existsSync(path.join(dst, 'novel', 'index.html')), 'novel/index.html should exist');
 });
 
 it('copyWeb skips proxy-worker.js, node_modules, LICENSE, README.md', () => {

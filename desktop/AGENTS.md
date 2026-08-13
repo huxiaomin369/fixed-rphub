@@ -6,7 +6,7 @@
 - `desktop/` 是独立子项目（`package.json` 独立、依赖隔离），核心文件：
   - `main.js` — 主进程：创建 `BrowserWindow`、注入 CSP header、移除默认菜单
   - `preload.js` — 预加载脚本，首版无 IPC 桥接（仅占位注释）
-  - `copy-web.js` — 打包前把 Web 资源（`index.html`、`assets`、`character`）拷贝到 `dist-stage/`
+  - `copy-web.js` — 打包前把 Web 资源（`index.html`、`assets`、`character`、`novel`）拷贝到 `dist-stage/`
   - `copy-web.test.js` — `copy-web.js` 的 `node --test` 单元测试
   - `scripts/build.ps1` — 一键打包脚本（受限网络镜像 + 7za 包装器）
   - `dist-stage/` — `copy-web.js` 的临时产物目录（每次 stage 全量重建）
