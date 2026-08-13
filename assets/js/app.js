@@ -839,6 +839,23 @@ createApp({
         window.addEventListener('message', (event) => {
             if (event.data && event.data.type === 'WORKSHOP_READY') {
                 syncSettingsToGenerator();
+            } else if (event.data && event.data.type === 'REQUEST_RPHUB_API_SETTINGS' && event.data.requestId
+                && event.source && event.origin === window.location.origin) {
+                // Reply to novel/index.html settings request (RPHUB_API_SETTINGS protocol)
+                const novelProviders = apiProviderOptions.map((provider) => ({
+                    id: provider.id,
+                    name: provider.name,
+                    apiUrl: provider.apiUrl,
+                    icon: provider.icon
+                }));
+                novelProviders.push({ id: 'custom', name: '自定义', apiUrl: settings.customApiUrl || '' });
+                novelProviders.push({ id: 'custom2', name: '自定义 2', apiUrl: settings.customApiUrl2 || '' });
+                event.source.postMessage({
+                    type: 'RPHUB_API_SETTINGS',
+                    requestId: event.data.requestId,
+                    settings: JSON.parse(JSON.stringify(settings)),
+                    providers: novelProviders
+                }, '*');
             }
         });
 
@@ -1538,6 +1555,15 @@ createApp({
             syncSettingsToGenerator();
         };
 
+        // Novel State
+        const isNovelLoading = ref(true);
+        const novelUrl = ref('./novel/index.html');
+
+        const onNovelLoad = () => {
+            isNovelLoading.value = false;
+            console.log('%c[Novel] Novel Studio Iframe Loaded', 'color: #10b981; font-weight: bold;');
+        };
+
         // Square State
         const isSquareLoading = ref(true);
         const squareUrl = ref('https://rphforum.zeabur.app/');
@@ -1554,6 +1580,9 @@ createApp({
                 isGeneratorLoading.value = true;
                 // Add timestamp to force refresh
                 generatorUrl.value = `./character/index.html?t=${Date.now()}`;
+            } else if (newView === 'novel') {
+                isNovelLoading.value = true;
+                novelUrl.value = `./novel/index.html?t=${Date.now()}`;
             } else if (newView === 'square') {
                 isSquareLoading.value = true;
                 // Add timestamp to force refresh
@@ -8317,7 +8346,7 @@ year 2025, textless version, {{petite,loli}}, Petite figure, no text, The image 
                 markdownOnly: true,
                 promptOnly: false,
                 scope: 'global',
-                enabled: false // Default closed
+                enabled: true // Default open
             };
 
             // 查找当前是否已存在新命名的正则
@@ -8412,7 +8441,7 @@ year 2025, textless version, {{petite,loli}}, Petite figure, no text, The image 
 
 特别提示：出现user或主角参与的情况(如被口、手交），禁止出现主角的人物形象(脸部，头部）！必须使用第一视角(POV）相关提示词！且要作为Character  Prompt添加，禁止出现用户/主角名字(包括英文和拼音），中文和{{user}}是明令禁止的；同人角色本人的官方角色名仍按上方规则放在最前面。一定要保持同一人物在上下文中的形象一致性，不要丢失人物特性(如有异色瞳特征人物），涉及人物常见特征(如发色，瞳孔颜色等）的提示词请增加权重\n</auto_image_gen>`,
                 constant: true,
-                enabled: false, // Default closed
+                enabled: true, // Default open
                 scope: 'global',
                 position: 'before_char',
                 depth: 4,
@@ -10231,6 +10260,7 @@ ${uiTemplateAnalysisSection}
             editingCharacter, editingPreset, editingUiTemplate, toasts, chatContainer, isChatFullscreen, isMobileKeyboardOpen, inputBox, messageElements,
             lastUserMessageIndex, // Expose to template
             isGeneratorLoading, generatorUrl, onGeneratorLoad, syncSettingsToGenerator, // Generator exports
+            isNovelLoading, novelUrl, onNovelLoad, // Novel exports
             isSquareLoading, squareUrl, onSquareLoad, // Square exports
             editorTab, characterDisplayLimit, displayedCharacters, loadMoreCharacters,
             isAutoImageGenEnabled,
