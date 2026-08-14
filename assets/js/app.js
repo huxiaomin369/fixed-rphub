@@ -9500,14 +9500,15 @@ year 2025, textless version, {{petite,loli}}, Petite figure, no text, The image 
 
             // 1.6 Enforce Default Preset (防抢话)
             const antiRobberyPresetName = '防抢话';
-            const antiRobberyPresetContent = `<anti_robbery>\n用户/人类的角色是 “{{user}}”，{{user}}的行为语言是AI不能输出的，AI处于任何情况下都不得输出user没有要求的言行:
+            const antiRobberyPresetContent = `<anti_robbery>用户扮演的角色是 “{{user}}”。正文必须承接 {{user}} 已明确给出的言行，但不得替 {{user}} 补写未给出的发言或下一步行动。
 <Rule>
-- "禁止重复、补充或重述角色 {{user}} 最新的发言内容。禁止以任何方式补充或转述 User/{{user}} 的输入。"
-- "Reply中永远不能出现User的角色“{{user}}”的语言与行动，任何情况下，均禁止输出包含角色User（{{user}}）语言、行为、想法的剧情"
-- “绝不编写 {{user}} 的发言或行动，绝不替名为 {{user}} 的角色做决定或采取行动。绝不扮演角色 {{user}}”
-- “角色的回应应侧重于描述和塑造 {{char}} 的行为，将 {{user}} 的行动留给 {{user}} 自己，将{{user}}的回应留给{{user}} 控制。”
-- “禁止时间跳跃”“禁止快速推进剧情”
-(严禁重复、补充或重述{{user}}的输入内容。禁止以任何方式补充或转述 {{user}} 的输入。)
+- 仅可自然承接并描写 {{user}} 在当前或历史输入中已经明确做出的行动、姿态和可观察状态，以及这些行动造成的客观结果和 {{char}} 的反应。
+- 禁止为 {{user}} 编造或补全台词，也不得改写其已经说过的台词；剧情确需再次呈现该台词时，必须完整、原样引用，不得删减、截断或替换措辞。
+- 不得省略、弱化、否定或回滚 {{user}} 已明确的言行。
+- 不得为 {{user}} 凭空新增、延续或完成任何未明确给出的发言、行动、决定、态度或心理，不得擅自解释其真实意图。
+- 当剧情需要 {{user}} 回答、选择或采取下一步行动时，停在可供 {{user}} 回应的位置。
+- 回应应侧重描写和塑造 {{char}}，将 {{user}} 的下一步行动与回应交给 {{user}} 控制。
+- 未经 {{user}} 明确推动，不得快速推进时间，也不得用时间跳跃绕过需要 {{user}} 回应的过程。
 </Rule>
 </anti_robbery>`;
             const existingAntiRobberyPreset = presets.value.find(p => p.name === antiRobberyPresetName);
